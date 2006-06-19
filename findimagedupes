@@ -1,0 +1,871 @@
+#!/usr/bin/perl -w
+# $Id: findimagedupes,v 1.1 2006/06/19 14:06:12 jhnc Exp $
+#
+# findimagedupes - Finds visually similar or duplicate images
+#
+# Copyright 2006 by Jonathan H N Chin <code@jhnc.org>.
+#
+# This program is free software; you may redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+
+use strict;
+
+require 5.6.1;
+
+use Cwd qw(realpath);
+use DB_File;
+use Digest::MD5 qw(md5_hex);
+use Getopt::Long;
+use File::MimeInfo::Magic;
+use File::Temp qw(tempdir tempfile);
+use Image::Magick;
+use MIME::Base64;
+use Pod::Usage;
+
+use Inline C => 'DATA', DIRECTORY => '/usr/local/lib/findimagedupes';
+
+# ----------------------------------------------------------------------
+#
+# option parsing
+#
+
+use vars qw(
+	$null
+	$add
+	$collection
+	@debug %debug
+	@fpdb
+	$merge
+	$nocompare
+	$program
+	$quiet
+	$rescan
+	$script
+	$threshold
+	@verbosity
+	$prune
+);
+
+$add = 0;
+$quiet = 0;
+$threshold = 90;
+
+my %opt;
+GetOptions(
+	'0|null'                 => \$null,
+	'a|add'                  => \$add,
+	'c|collection=s'         => \$collection,
+	'd|debug=s@'             => \@debug,
+	'f|fingerprints|fp|db=s' => \@fpdb,
+	'h|?|help'               => sub { pod2usage(-verbose => 1) },
+	'm|merge=s'              => \$merge,
+	'n|no-compare'           => \$nocompare,
+	'p|program=s'            => \$program,
+	'q|quiet'                => sub { $quiet++ },
+	'r|rescan'               => \$rescan,
+	's|script=s'             => \$script,
+	't|threshold=i'          => \$threshold,
+	'v|verbosity=s'          => \@verbosity,
+	'man'                    => sub { pod2usage(-verbose => 2) },
+	'prune'                  => \$prune,
+) or pod2usage(-verbose => 0);
+
+# ----------------------------------------------------------------------
+
+my @errors = ();
+my @warnings = ();
+
+sub exitvalue {
+	return(2) if @errors;
+	return(1) if @warnings;
+	return(0);
+}
+
+sub mkerr { push @errors, join("", @_); }
+sub mkwarn { push @warnings, join("", @_); }
+
+sub nqprint { print(@_) unless $quiet; }
+sub nqwarn { warn("Warning: ", @_) unless $quiet; }
+sub nqdie { nqwarn(@_); die; }
+sub nqdie2 { warn("Error: ", @_) if $quiet<2; die; }
+sub nqexit { warn("Error: ", @_) if $quiet<2; exit(3); }
+
+my $inFP = 0;
+$SIG{SEGV} = sub { die $inFP ? "caught segfault" : ()};
+
+# ----------------------------------------------------------------------
+#
+# setup
+#
+
+my ($verb_fp, $verb_md5);
+
+my $read_input = grep(/^-$/, @ARGV);
+
+# XXX: can we tie these to save memory without breaking hv_iterinit() ?
+my (%fpcache, %filelist);
+
+my $image = Image::Magick->new;
+
+for (@debug) { $debug{$_} = 1 }
+
+# ----------------------------------------------------------------------
+#
+# sanity checks
+#
+
+# +----------+
+# | warnings |
+# +----------+
+
+if ($read_input>1) {
+	mkwarn("extra occurrences of \"-\" will be ignored");
+}
+
+if ($null and !grep(/^-$/, @ARGV)) {
+	mkwarn("--null has no effect in this context");
+}
+
+if ($prune and !@fpdb) {
+	mkwarn("--prune has no effect in this context");
+}
+
+if ($nocompare) {
+	mkwarn("--program ignored because --no-compare given") if $program;
+	mkwarn("--script ignored because --no-compare given") if $script;
+}
+
+if (@warnings and !$quiet) {
+	warn( join("\n", map {"Warning: $_"} @warnings), "\n" );
+}
+
+# +--------+
+# | errors |
+# +--------+
+
+if ($collection and -e($collection)) {
+	mkerr("Output file for --collection exists: $collection");
+}
+
+for (@fpdb) {
+	mkerr("File for --fingerprints does not exist: $_")
+		unless (-f($_) or (@fpdb==1 and !$merge));
+}
+
+if (@fpdb>1 and !$merge) {
+	mkerr("Require --merge if using multiple fingerprint databases");
+}
+
+# XXX: not sure this is true any more
+#if (@fpdb<1 and $merge) {
+#	mkerr("Cannot use --merge unless --fingerprints also specified");
+#}
+
+if ($merge and -e($merge)) {
+	mkerr("Output file for --merge exists: $merge");
+}
+
+if ($program) {
+	if (! -e($program)) {
+		mkerr("File for --program does not exist: $program");
+	}
+	elsif (! -x($program)) {
+		mkerr("File for --program not executable: $program");
+	}
+}
+
+if ($script and -e($script)) {
+	mkerr("Output file for --script exists: $script");
+}
+
+if ($threshold>100 or $threshold<0) {
+	mkerr("--threshold takes values between 0 and 100");
+}
+
+for (split(",", join(",", @verbosity))) {
+	/^(fingerprint|fp)$/ && do { $verb_fp = 1;  next; };
+	/^md5$/              && do { $verb_md5 = 1; next; };
+	mkerr("unknown option to --verbosity: $_");
+}
+
+if (@errors) {
+	exit(exitvalue()) unless $quiet<2;
+	pod2usage(
+		-verbose => 0,
+		-exitval => exitvalue(),
+		-msg => join("\n", map {"Error: $_"} @errors),
+	);
+}
+
+# +-------------------------------------------------+
+# | last chance to abort without altering any files |
+# +-------------------------------------------------+
+
+unless (@ARGV>0 or @fpdb or $merge) {
+	exit(exitvalue()) unless $quiet<2;
+	warn("Nothing to do!\n") unless @warnings or $quiet;
+	pod2usage(
+		-verbose => 0,
+		-exitval => exitvalue(),
+	);
+}
+
+# ----------------------------------------------------------------------
+#
+# load fingerprint cache
+#
+
+for my $db (@fpdb) {
+	my %data;
+	tie(%data, 'DB_File', $db) or nqexit("tie($db): $!\n");
+	while (my ($file, $fp) = each %data) {
+		next if ($prune && !-f($file));
+
+		if (exists $fpcache{$file}) {
+			# duplicate fingerprint, force regeneration
+			delete $fpcache{$file};
+		}
+		else {
+			$fpcache{$file} = $fp;
+		}
+	}
+	untie(%data);
+}
+
+# ----------------------------------------------------------------------
+#
+# build file list
+#
+
+my %mergelist;
+my $rw = 0;
+
+if ($merge) {
+	tie(%mergelist, 'DB_File', $merge) or nqexit("tie($merge): $!\n");
+	%mergelist = %fpcache;
+	$rw = 1;
+}
+elsif (@fpdb==1) {
+	tie(%mergelist, 'DB_File', $fpdb[0]) or nqexit("tie($fpdb[0]): $!\n");
+	%mergelist = %fpcache if $prune;
+	$rw = 1;
+}
+
+$| = 1;
+$/ = "\0" if $null;
+
+for (@ARGV) {
+	classify($_);
+}
+
+untie(%mergelist);
+
+finddupes() unless $nocompare;
+
+exit 0;
+
+# ----------------------------------------------------------------------
+
+sub process_file {
+	my ($path) = @_;
+	my $file = realpath($path); # normalize to absolute canonical path
+	if (!$file) {
+		nqwarn("skipping bogus file: $path\n");
+	}
+	else {
+		if (!$rescan and $fpcache{$file}) {
+			$filelist{$file} = $fpcache{$file};
+			delete $fpcache{$file};
+			# mergelist has already been set from fpcache
+		}
+		else {
+			my $fp = fingerprint($file);
+			if ($fp) {
+				$filelist{$file} = $fp;
+				$mergelist{$file} = $filelist{$file} if $rw;
+			}
+		}
+
+		if ($verb_fp) {
+			if ($filelist{$file}) {
+				print(encode_base64($filelist{$file}, ""), "  $file\n");
+			}
+			else {
+				nqwarn("can't get fingerprint: $file\n");
+			}
+		}
+		if ($verb_md5) {
+			open(FILE, $file) or nqdie2("open($file): $!\n");
+			binmode(FILE);
+			my $digest = Digest::MD5->new->addfile(*FILE)->hexdigest;
+			if ($digest) {
+				print("$digest  $file\n");
+			}
+			else {
+				nqwarn("can't get md5sum: $file\n");
+			}
+			close(FILE);
+		}
+	}
+}
+
+sub classify {
+	my ($file) = @_;
+
+	if ($file eq "-") {
+		if ($read_input) {
+			$read_input = 0;
+			while (<>) {
+				chomp;
+				classify($_);
+			}
+		}
+		else {
+			# silently ignore any extra occurrences of "-"
+			# (we already reported them at startup)
+		}
+	}
+	elsif (-d($file) and !-l($file)) {
+		# don't follow directory symlinks, to prevent looping
+		while (glob("$file/*")) {
+			chomp;
+			process_file($_) if (-f($_)); # no recursing
+		}	
+	}
+	elsif (-f($file)) {
+		# symlinks are okay for normal files
+		process_file($file);
+	}
+	else {
+		# skip anything else (devices, etc)
+		nqwarn("skipping file: $file\n");
+	}
+}
+
+# ----------------------------------------------------------------------
+
+sub try {
+	my ($err) = @_;
+	if ($err and $err !~ /Warning (315|330):/) {
+		nqdie("imagemagick problem: $err\n");
+	}
+}
+
+sub fingerprint {
+	my ($file) = @_;
+	my $blob;
+
+	$inFP = 1;
+	my $result = eval {
+		if ((mimetype($file)||'') =~ /^(audio|video)/) {
+			nqdie("not fingerprinting A/V file: $file\n");
+		}
+
+		if (!$image->Ping($file)) {
+			nqdie("not fingerprinting unknown-type file: $file\n");
+		}
+
+		try $image->Read($file);
+
+		if ($#$image<0) {
+			nqdie("fingerprint: not enough image data for $file");
+		}
+		else {
+			$#$image = 0;
+		}
+		try $image->Sample("160x160!");
+		try $image->Modulate(saturation=>-100);
+		try $image->Blur(radius=>3,sigma=>99);
+		try $image->Normalize();
+		try $image->Equalize();
+		try $image->Sample("16x16");
+		try $image->Threshold();
+		try $image->Set(magick=>'mono');
+
+		($blob) = $image->ImageToBlob();
+		if (!defined($blob)) {
+			nqdie2("This can't happen! undefined blob for: $file\n");
+		}
+	};
+	$inFP = 0;
+	@$image = ();
+
+	(defined $result) ? $blob: undef;
+}
+
+sub finddupes {
+	my @matches = diffbits(\%fpcache, \%filelist, $threshold, $add);
+
+	my (%set, %ptr, %val);
+
+	while (@matches) {
+		my $a = shift(@matches);
+		my $b = shift(@matches);
+		my $c = shift(@matches);
+		$set{$a} = 1;
+		$set{$b} = 1;
+
+		# cf. debian bug #87013
+
+		if (!defined($ptr{$a}) and !defined($ptr{$b})) {
+			$ptr{$a} = $a;
+			push @{$val{$a}}, $a, $b;
+			$ptr{$b} = $a;
+			$#{$val{$b}} = 0;
+		}
+		elsif (defined($ptr{$a}) and !defined($ptr{$b})) {
+			push @{$val{$ptr{$a}}}, $b;
+			$ptr{$b} = $ptr{$a};
+			$#{$val{$b}} = 0;
+		}
+		elsif (!defined($ptr{$a}) and defined($ptr{$b})) {
+			push @{$val{$ptr{$b}}}, $a;
+			$ptr{$a} = $ptr{$b};
+			$#{$val{$a}} = 0;
+		}
+		elsif ($ptr{$a} ne $ptr{$b}) {
+			my $valptrb = $val{$ptr{$b}};
+			push @{$val{$ptr{$a}}}, @{$valptrb};
+			for my $bkey (@{$valptrb}) {
+				$ptr{$bkey} = $ptr{$a};
+			}
+			$#$valptrb = 0;
+			# else $val{$a} is $val{$b} already
+		}
+	}
+
+	my $cnt = 0;
+	for my $k (keys %filelist, keys %fpcache) {
+		$set{$cnt} = $k if defined $set{$cnt};
+		$cnt++;
+	}
+
+	if ($script) {
+		open(COMMANDS, "> $script") or nqdie2("open(> $script): $!\n");
+	}
+	else {
+		open(COMMANDS, "| /bin/sh") or nqdie2("open(| /bin/sh): $!\n");
+	}
+	select(COMMANDS);
+
+	unless ($program) {
+		$program = 'VIEW';
+		print <<'EOD';
+#!/bin/sh
+
+VIEW(){
+	echo "$@"
+}
+
+EOD
+	}
+
+	for my $k (keys %ptr) {
+		next unless $ptr{$k} eq $k;
+		print join(" \\\n\t",
+			$program,
+			( map { quotemeta $set{$_} } @{$val{$ptr{$k}}} ),
+			";\n"
+		);
+	}
+	close(COMMANDS);
+}
+
+# ======================================================================
+
+__DATA__
+
+=head1 NAME
+
+findimagedupes - Finds visually similar or duplicate images
+
+=head1 SYNOPSIS
+
+findimagedupes [option ...] [--] [ - | [file ...] ]
+
+   Options:
+      -f, --fingerprints=FILE    -c, --collection=FILE
+          --merge=FILE           -p, --program=PROGRAM
+          --prune                -s, --script=FILE
+      -a, --add
+      -r, --rescan               -q, --quiet
+      -n, --no-compare           -v, --verbosity=LIST
+                                 -d, --debug=OPTS
+      -t, --threshold=NUM
+                                 -h, --help
+      -0, --null                     --man
+
+With no options, compares the specified files and does not use
+nor update any fingerprint database.
+
+Directories of images may be specified instead of individual files;
+Sub-directories are NOT searched recursively.
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-0>, B<--null>
+
+If a file C<-> is given, a list of files is read from stdin.
+
+Without B<-0>, the list is specified one file per line, such as
+produced by find(1) with its C<-print> option.
+
+With B<-0>, the list is expected to be null-delimited, such as
+produced by find(1) with its C<-print0> option.
+
+=item B<-a>, B<--add>
+
+Only look for duplicates of files specified on the commandline.
+
+Matches are also sought in any fingerprint databases specified.
+
+=item B<-c>, B<--collection>=I<FILE>
+
+B<NOT IMPLEMENTED> (does anyone use this option?)
+
+Create GQView collection I<FILE>.gqv of duplicates.
+
+=item B<-d>, B<--debug>=I<OPTS>
+
+Enable debugging output. Options I<OPTS> are subject to change.
+See the program source for details.
+
+=item B<-f>, B<--fingerprints>=I<FILE>
+
+Use I<FILE> as fingerprint database.
+
+May be abbreviated as B<--fp> or B<--db>.
+
+This option may be given multiple times when B<--merge> is used.
+(Note: I<FILE> could contain commas, so multiple databases may
+not be specified as a single comma-delimited list.)
+
+=item B<-h>, B<--help>
+
+Print usage and option sections of this manual.
+
+=item B<--man>
+
+Display the full documentation, using default pager.
+
+=item B<--merge>=I<FILE>
+
+Takes any databases specified with B<--fingerprints>
+and merges them into a new database called I<FILE>.
+Conflicting fingerprints for an image will cause one of two actions to occur:
+
+=over 4
+
+=item 1.
+
+If the image does not exist, then the entry is elided.
+
+=item 2.
+
+If the image does exist, then the old information is ignored
+and a new fingerprint is generated from scratch.
+
+=back
+
+By default, image existence is not checked unless there is a conflict.
+To force removal of defunct data, use B<--prune> as well.
+
+A list of image files is not required if this option is used.
+However, if a list is provided, fingerprint data for the files
+will be copied or (re)generated as appropriate.
+
+When B<--merge> is used, the original fingerprint databases are not modified,
+even if B<--prune> is used.
+
+See also: B<--rescan>
+
+=item B<-n>, B<--no-compare>
+
+Don't look for duplicates.
+
+=item B<-p>, B<--program>=I<PROGRAM>
+
+Launch I<PROGRAM> (in foreground) to view each set of dupes.
+
+See also: B<--script>.
+
+=item B<--prune>
+
+Remove fingerprint data for images that do not exist any more.
+Has no effect unless B<--fingerprints> or B<--merge> is also used.
+
+Databases specified by B<--fingerprints> are only modified if
+B<--merge> is not used.
+
+=item B<-q>, B<--quiet>
+
+This option may be given multiple times.
+
+Usually, progress, warning and error messages are printed on stderr.
+If this option is given, warnings are not displayed.
+If it is given twice or more, errors are not displayed either.
+
+Information requested with B<--verbosity> is still displayed.
+
+=item B<-r>, B<--rescan>
+
+(Re)generate all fingerprints, not just any that are unknown.
+
+If used with B<--add>, only the fingerprints of files specified
+on the commandline are (re)generated.
+
+Implies B<--prune>.
+
+=item B<-s>, B<--script>=I<FILE>
+
+When used with B<--program>, I<PROGRAM> is not launched immediately.
+Instead sh(1)-style commands are saved to I<FILE>.
+This script may be edited (if desired) and then executed manually.
+
+When used without B<--program>, a skeletal shell function C<VIEW>
+is generated, which simply echo(1)s its arguments.
+
+To display to terminal (or feed into a pipe), use C<-> as I<FILE>.
+
+=item B<-t>, B<--threshold>=I<NUM>
+
+Use I<NUM> as threshold% of similarity.
+Default is 90 if not specified.
+
+=item B<-v>, B<--verbosity>=I<LIST>
+
+Enable display of informational messages to stdout,
+where I<LIST> is a comma-delimited list of:
+
+=over 8
+
+=item B<md5>
+
+Display the checksum for each file, as per md5sum(1).
+
+=item B<fingerprint>,B<fp>
+
+Display the base64-encoded fingerprint of each file.
+
+=back
+
+Alternatively, B<--verbosity> may be given multiple times, and accumulates.
+Note that this may not be sensible. For example, to be useful,
+B<md5> output probably should not be merged with B<fingerprint> data.
+
+=back
+
+=head1 DESCRIPTION
+
+B<findimagedupes> compares a list of files for visual similarity.
+
+=over 1
+
+=item To calculate an image fingerprint:
+
+ 1) Read image.
+ 2) Resample to 160x160 to standardize size.
+ 3) Grayscale by reducing saturation.
+ 4) Blur a lot to get rid of noise.
+ 5) Normalize to spread out intensity as much as possible.
+ 6) Equalize to make image as contrasty as possible.
+ 7) Resample again down to 16x16.
+ 8) Reduce to 1bpp.
+ 9) The fingerprint is this raw image data.
+
+=item To compare two images for similarity:
+
+ 1) Take fingerprint pairs and xor them.
+ 2) Compute the percentage of 1 bits in the result.
+ 3) If percentage exceeds threshold, declare files to be similar.
+
+=back
+
+
+=head1 RETURN VALUE
+
+=over 4
+
+=item 0
+
+Success.
+
+=item 1
+
+Usage information was requested (B<--help> or B<--man>), or there
+were warnings.
+
+=item 2
+
+Invalid options or arguments were provided.
+
+=item 3
+
+Runtime error.
+
+=back
+
+Any other return values indicate an internal error of some sort.
+
+=head1 DIAGNOSTICS
+
+To be written.
+
+=head1 EXAMPLES
+
+To be written.
+
+=head1 FILES
+
+To be written.
+
+=head1 BUGS
+
+B<ImageMagick> may call helpers such as B<ghostscript> to process files.
+Annoyingly, it doesn't always catch output from these helpers, so their
+errors can end up being displayed even if B<--quiet> is used.
+
+=head1 NOTES
+
+Directory recursion is deliberately not implemented:
+Composing a file-list and using it with C<-> is a more flexible approach.
+
+Repetitions are culled before comparisons take place, so a commandline
+like C<findimagedupes a.jpg a.jpg> will not produce a match.
+
+The program needs a lot of memory. Probably not an issue, unless your
+machine has less than 128MB of free RAM and you try to compare more than
+a hundred-thousand files at once (and the program will run quite slowly
+with that many files anyway---about eight hours initially to generate
+fingerprints and another ten minutes to do the actual comparing).
+
+=head1 SEE ALSO
+
+find(1), md5sum(1)
+
+B<gqview> - A simple image viewer using GTK+
+
+=head1 AUTHOR
+
+Jonathan H N Chin <code@jhnc.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2006 by Jonathan H N Chin <code@jhnc.org>.
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 HISTORY
+
+This code has been written from scratch. However it owes its existence
+to B<findimagedupes> by Rob Kudla which was distributed with Debian
+(until this version replaced it?) and uses the same duplicate-detection
+algorithm.
+
+=cut
+
+__C__
+
+/* efficient bit-comparison */
+
+#include <stdint.h>
+#include <string.h>
+
+#define LOOKUP_SIZE 65536
+#define FP_CHUNKS 16
+
+typedef uint16_t FP[FP_CHUNKS];
+
+unsigned int simplecountbits (unsigned int i) {
+	unsigned int val = i, res = 0;
+
+	while (val) {
+		res += (val&1);
+		val >>= 1;
+	}
+	return(res);
+}
+
+void diffbits (SV* oldfiles, SV* newfiles, unsigned int percent, unsigned limit) {
+	FP *the_data, *a, *b;
+	unsigned int lookup[LOOKUP_SIZE];
+	unsigned int i, j, k, m, bits, threshold, old, new;
+	HV *oldhash;
+	HE *oldhash_entry;
+	HV *newhash;
+	HE *newhash_entry;
+	unsigned int numkeys = 0;
+	SV *sv_val;
+	Inline_Stack_Vars;
+
+	if ((percent<1) || (percent>99)) {
+		croak("ridiculous percentage specified");
+	}
+	threshold = floor(2.56*(100-percent));
+
+	/* pack fingerprints into C array */
+	/* partly lifted from Inline::C-Cookbook */
+
+	if (! SvROK(newfiles)) {
+		croak("newfiles is not a reference");
+	}
+	newhash = (HV *)SvRV(newfiles);
+	new = hv_iterinit(newhash);
+
+	if (! SvROK(oldfiles)) {
+		croak("oldfiles is not a reference");
+	}
+	oldhash = (HV *)SvRV(oldfiles);
+	old = hv_iterinit(oldhash);
+
+	numkeys = new+old;
+	if (numkeys<2) {
+		/* minor optimization: return without doing anything */
+		/* malloc(0) could be bad... */
+		Inline_Stack_Void;
+	}
+	the_data = (FP *)malloc(numkeys*sizeof(FP));
+
+	for (i = 0; i<new; i++) {
+		newhash_entry = hv_iternext(newhash);
+		sv_val = hv_iterval(newhash, newhash_entry);
+		memcpy(the_data+i, SvPV(sv_val, PL_na), sizeof(FP));
+	}
+	for (i = new; i<numkeys; i++) {
+		oldhash_entry = hv_iternext(oldhash);
+		sv_val = hv_iterval(oldhash, oldhash_entry);
+		memcpy(the_data+i, SvPV(sv_val, PL_na), sizeof(FP));
+	}
+
+	/* initialise lookup table */
+	/* XXX: fast enough? could optimise more or compile-in a static table */
+	for (i=0; i<LOOKUP_SIZE; i++) {
+		lookup[i] = simplecountbits(i);
+	}
+
+	/* look for matches */
+	Inline_Stack_Reset;
+	for (a=the_data, i=0, m=(limit>0 ? new-1 : numkeys-1); i<m; a++, i++) {
+		for (b=a+1, j=i+1; j<numkeys; b++, j++) {
+			for (bits=0, k=0; k<FP_CHUNKS; k++) {
+				bits += lookup[(*a)[k]^(*b)[k]];
+				if (bits > threshold) goto abortmatch;
+			}
+			/* if (bits <= threshold) */ {
+				Inline_Stack_Push(sv_2mortal(newSViv(i)));
+				Inline_Stack_Push(sv_2mortal(newSViv(j)));
+				Inline_Stack_Push(sv_2mortal(newSViv(bits)));
+			}
+abortmatch:;
+		}
+	}
+	Inline_Stack_Done;
+
+	/* clean up */
+	free(the_data);
+}
+
