@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 1.1 2006/06/19 14:06:12 jhnc Exp $
+# $Id: findimagedupes,v 1.2 2006/06/19 15:49:49 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -829,6 +829,9 @@ void diffbits (SV* oldfiles, SV* newfiles, unsigned int percent, unsigned limit)
 		Inline_Stack_Void;
 	}
 	the_data = (FP *)malloc(numkeys*sizeof(FP));
+	if (!the_data) {
+		croak("malloc failed");
+	}
 
 	for (i = 0; i<new; i++) {
 		newhash_entry = hv_iternext(newhash);
