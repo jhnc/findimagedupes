@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 1.2 2006/06/19 15:49:49 jhnc Exp $
+# $Id: findimagedupes,v 1.3 2006/06/29 01:41:18 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -348,7 +348,7 @@ sub classify {
 sub try {
 	my ($err) = @_;
 	if ($err and $err !~ /Warning (315|330):/) {
-		nqdie("imagemagick problem: $err\n");
+		die("imagemagick problem: $err\n");
 	}
 }
 
@@ -356,20 +356,27 @@ sub fingerprint {
 	my ($file) = @_;
 	my $blob;
 
+	# imagemagick doesn't always catch output from the programs
+	# it spawns, so we have to clean up for it...
+	open(SAVED_OUT, ">&", \*STDOUT) or nqdie2("open(/dev/null): $!");
+	open(SAVED_ERR, ">&", \*STDERR) or nqdie2("open(/dev/null): $!");
+	open(STDOUT, ">/dev/null");
+	open(STDERR, ">/dev/null");
+
 	$inFP = 1;
 	my $result = eval {
 		if ((mimetype($file)||'') =~ /^(audio|video)/) {
-			nqdie("not fingerprinting A/V file: $file\n");
+			die("not fingerprinting A/V file: $file\n");
 		}
 
 		if (!$image->Ping($file)) {
-			nqdie("not fingerprinting unknown-type file: $file\n");
+			die("not fingerprinting unknown-type file: $file\n");
 		}
 
 		try $image->Read($file);
 
 		if ($#$image<0) {
-			nqdie("fingerprint: not enough image data for $file");
+			die("fingerprint: not enough image data for $file");
 		}
 		else {
 			$#$image = 0;
@@ -385,13 +392,25 @@ sub fingerprint {
 
 		($blob) = $image->ImageToBlob();
 		if (!defined($blob)) {
-			nqdie2("This can't happen! undefined blob for: $file\n");
+			die("This can't happen! undefined blob for: $file\n");
 		}
 	};
+
 	$inFP = 0;
 	@$image = ();
 
-	(defined $result) ? $blob: undef;
+	open(STDOUT, ">&", \*SAVED_OUT) or nqdie2("open(/dev/null): $!");
+	open(STDERR, ">&", \*SAVED_ERR) or nqdie2("open(/dev/null): $!");
+	close(SAVED_OUT);
+	close(SAVED_ERR);
+
+	if (defined $result) {
+		return $blob;
+	}
+	else {
+		nqwarn($@);
+		return undef;
+	}
 }
 
 sub finddupes {
@@ -724,9 +743,7 @@ To be written.
 
 =head1 BUGS
 
-B<ImageMagick> may call helpers such as B<ghostscript> to process files.
-Annoyingly, it doesn't always catch output from these helpers, so their
-errors can end up being displayed even if B<--quiet> is used.
+There is a memory leak somewhere.
 
 =head1 NOTES
 
