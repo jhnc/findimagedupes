@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w
-# $Id: findimagedupes,v 1.4 2006/07/03 10:23:44 jhnc Exp $
+#!/usr/bin/perl -wT
+# $Id: findimagedupes,v 1.5 2006/09/19 00:16:12 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -461,6 +461,11 @@ sub finddupes {
 	}
 
 	if ($script) {
+		# untaint
+		# XXX: we allow any filename. do we need to be more fussy?
+		$script =~ m/(.*)/;
+		$script = $1;
+
 		open(COMMANDS, "> $script") or nqdie2("open(> $script): $!\n");
 	}
 	else {
