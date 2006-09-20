@@ -1,0 +1,220 @@
+NAME
+    findimagedupes - Finds visually similar or duplicate images
+
+SYNOPSIS
+    findimagedupes [option ...] [--] [ - | [file ...] ]
+
+       Options:
+          -f, --fingerprints=FILE    -c, --collection=FILE
+              --merge=FILE           -p, --program=PROGRAM
+              --prune                -s, --script=FILE
+          -a, --add
+          -r, --rescan               -q, --quiet
+          -n, --no-compare           -v, --verbosity=LIST
+                                     -d, --debug=OPTS
+          -t, --threshold=NUM
+                                     -h, --help
+          -0, --null                     --man
+
+    With no options, compares the specified files and does not use nor
+    update any fingerprint database.
+
+    Directories of images may be specified instead of individual files;
+    Sub-directories are NOT searched recursively.
+
+OPTIONS
+    -0, --null
+            If a file "-" is given, a list of files is read from stdin.
+
+            Without -0, the list is specified one file per line, such as
+            produced by find(1) with its "-print" option.
+
+            With -0, the list is expected to be null-delimited, such as
+            produced by find(1) with its "-print0" option.
+
+    -a, --add
+            Only look for duplicates of files specified on the commandline.
+
+            Matches are also sought in any fingerprint databases specified.
+
+    -c, --collection=*FILE*
+            NOT IMPLEMENTED (does anyone use this option?)
+
+            Create GQView collection *FILE*.gqv of duplicates.
+
+    -d, --debug=*OPTS*
+            Enable debugging output. Options *OPTS* are subject to change.
+            See the program source for details.
+
+    -f, --fingerprints=*FILE*
+            Use *FILE* as fingerprint database.
+
+            May be abbreviated as --fp or --db.
+
+            This option may be given multiple times when --merge is used.
+            (Note: *FILE* could contain commas, so multiple databases may
+            not be specified as a single comma-delimited list.)
+
+    -h, --help
+            Print usage and option sections of this manual.
+
+    --man   Display the full documentation, using default pager.
+
+    --merge=*FILE*
+            Takes any databases specified with --fingerprints and merges
+            them into a new database called *FILE*. Conflicting fingerprints
+            for an image will cause one of two actions to occur:
+
+            1.  If the image does not exist, then the entry is elided.
+
+            2.  If the image does exist, then the old information is ignored
+                and a new fingerprint is generated from scratch.
+
+            By default, image existence is not checked unless there is a
+            conflict. To force removal of defunct data, use --prune as well.
+
+            A list of image files is not required if this option is used.
+            However, if a list is provided, fingerprint data for the files
+            will be copied or (re)generated as appropriate.
+
+            When --merge is used, the original fingerprint databases are not
+            modified, even if --prune is used.
+
+            See also: --rescan
+
+    -n, --no-compare
+            Don't look for duplicates.
+
+    -p, --program=*PROGRAM*
+            Launch *PROGRAM* (in foreground) to view each set of dupes.
+
+            See also: --script.
+
+    --prune Remove fingerprint data for images that do not exist any more.
+            Has no effect unless --fingerprints or --merge is also used.
+
+            Databases specified by --fingerprints are only modified if
+            --merge is not used.
+
+    -q, --quiet
+            This option may be given multiple times.
+
+            Usually, progress, warning and error messages are printed on
+            stderr. If this option is given, warnings are not displayed. If
+            it is given twice or more, errors are not displayed either.
+
+            Information requested with --verbosity is still displayed.
+
+    -r, --rescan
+            (Re)generate all fingerprints, not just any that are unknown.
+
+            If used with --add, only the fingerprints of files specified on
+            the commandline are (re)generated.
+
+            Implies --prune.
+
+    -s, --script=*FILE*
+            When used with --program, *PROGRAM* is not launched immediately.
+            Instead sh(1)-style commands are saved to *FILE*. This script
+            may be edited (if desired) and then executed manually.
+
+            When used without --program, a skeletal shell function "VIEW" is
+            generated, which simply echo(1)s its arguments.
+
+            To display to terminal (or feed into a pipe), use "-" as *FILE*.
+
+    -t, --threshold=*NUM*
+            Use *NUM* as threshold% of similarity. Default is 90 if not
+            specified.
+
+    -v, --verbosity=*LIST*
+            Enable display of informational messages to stdout, where *LIST*
+            is a comma-delimited list of:
+
+            md5     Display the checksum for each file, as per md5sum(1).
+
+            fingerprint,fp
+                    Display the base64-encoded fingerprint of each file.
+
+            Alternatively, --verbosity may be given multiple times, and
+            accumulates. Note that this may not be sensible. For example, to
+            be useful, md5 output probably should not be merged with
+            fingerprint data.
+
+DESCRIPTION
+    findimagedupes compares a list of files for visual similarity.
+
+    To calculate an image fingerprint:
+      1) Read image.
+      2) Resample to 160x160 to standardize size.
+      3) Grayscale by reducing saturation.
+      4) Blur a lot to get rid of noise.
+      5) Normalize to spread out intensity as much as possible.
+      6) Equalize to make image as contrasty as possible.
+      7) Resample again down to 16x16.
+      8) Reduce to 1bpp.
+      9) The fingerprint is this raw image data.
+
+    To compare two images for similarity:
+      1) Take fingerprint pairs and xor them.
+      2) Compute the percentage of 1 bits in the result.
+      3) If percentage exceeds threshold, declare files to be similar.
+
+RETURN VALUE
+    0   Success.
+
+    1   Usage information was requested (--help or --man), or there were
+        warnings.
+
+    2   Invalid options or arguments were provided.
+
+    3   Runtime error.
+
+    Any other return values indicate an internal error of some sort.
+
+DIAGNOSTICS
+    To be written.
+
+EXAMPLES
+    To be written.
+
+FILES
+    To be written.
+
+BUGS
+    There is a memory leak somewhere.
+
+    Killing the programme may corrupt the fingerprint database(s).
+
+NOTES
+    Directory recursion is deliberately not implemented: Composing a
+    file-list and using it with "-" is a more flexible approach.
+
+    Repetitions are culled before comparisons take place, so a commandline
+    like "findimagedupes a.jpg a.jpg" will not produce a match.
+
+    The program needs a lot of memory. Probably not an issue, unless your
+    machine has less than 128MB of free RAM and you try to compare more than
+    a hundred-thousand files at once (and the program will run quite slowly
+    with that many files anyway---about eight hours initially to generate
+    fingerprints and another ten minutes to do the actual comparing).
+
+SEE ALSO
+    find(1), md5sum(1)
+
+    gqview - A simple image viewer using GTK+
+
+AUTHOR
+    Jonathan H N Chin <code@jhnc.org>
+
+COPYRIGHT AND LICENSE
+    Copyright 2006 by Jonathan H N Chin <code@jhnc.org>.
+
+    This program is free software; you may redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+HISTORY
+    This code has been written from scratch. However it owes its existence
+    to findimagedupes by Rob Kudla and uses the same duplicate-detection
+    algorithm.
+
