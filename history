@@ -1,3 +1,7 @@
+revision 2.2
+date: 2006/09/29 18:27:11
+Reformatted the manpage copyright to print as-is.
+----------------------------
 revision 2.1
 date: 2006/09/29 18:18:59
 Had forgotten to change the license text in the manpage.
