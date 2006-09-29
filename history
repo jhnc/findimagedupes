@@ -1,3 +1,7 @@
+revision 2.1
+date: 2006/09/29 18:18:59
+Had forgotten to change the license text in the manpage.
+----------------------------
 revision 2.0
 date: 2006/09/20 12:45:30
 First debian release.
