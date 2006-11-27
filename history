@@ -1,3 +1,11 @@
+revision 2.3
+date: 2006/11/27 00:10:34
+Switched from ImageMagick to GraphicsMagick.
+From or before debian's 6.2.4.5.dfsg1-0.11 version of the former,
+the program developed a tendency to end up sitting in SIGSTOP.
+The fingerprints created by Graphics::Magick seem hugely different
+from those of Image::Magick but, if anything, matching is improved.
+----------------------------
 revision 2.2
 date: 2006/09/29 18:27:11
 Reformatted the manpage copyright to print as-is.

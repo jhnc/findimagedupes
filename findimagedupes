@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.2 2006/09/29 18:27:11 jhnc Exp $
+# $Id: findimagedupes,v 2.3 2006/11/27 00:10:34 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -30,7 +30,7 @@ use Digest::MD5 qw(md5_hex);
 use Getopt::Long;
 use File::MimeInfo::Magic;
 use File::Temp qw(tempdir tempfile);
-use Image::Magick;
+use Graphics::Magick;
 use MIME::Base64;
 use Pod::Usage;
 
@@ -120,7 +120,7 @@ my $read_input = grep(/^-$/, @ARGV);
 # XXX: can we tie these to save memory without breaking hv_iterinit() ?
 my (%fpcache, %filelist);
 
-my $image = Image::Magick->new;
+my $image = Graphics::Magick->new;
 
 for (@debug) { $debug{$_} = 1 }
 
