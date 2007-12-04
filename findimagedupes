@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.4 2007/12/04 20:08:40 jhnc Exp $
+# $Id: findimagedupes,v 2.5 2007/12/04 22:17:27 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -288,23 +288,23 @@ sub process_file {
 		nqwarn("skipping bogus file: $path\n");
 	}
 	else {
-		if (!$rescan and $fpcache{$file}) {
-			$filelist{$file} = $fpcache{$file};
-			delete $fpcache{$file};
-			# mergelist has already been set from fpcache
+		my $fp;
+		if ($rescan or !exists $fpcache{$file}) {
+			$fp = fingerprint($file);
 		}
-		else {
-			my $fp = fingerprint($file);
-			if ($fp) {
-				$filelist{$file} = $fp;
-				delete $fpcache{$file};
-				$mergelist{$file} = $filelist{$file} if $rw;
-			}
+		elsif ($add and exists $fpcache{$file}) {
+			$fp = $fpcache{$file};
+		}
+		if ($fp) {
+			$filelist{$file} = $fp;
+			delete $fpcache{$file};
+			$mergelist{$file} = $filelist{$file} if $rw;
 		}
 
 		if ($verb_fp) {
-			if ($filelist{$file}) {
-				print(encode_base64($filelist{$file}, ""), "  $file\n");
+			my $fp = ( $filelist{$file} || $fpcache{$file} );
+			if ($fp) {
+				print(encode_base64($fp, ""), "  $file\n");
 			}
 			else {
 				nqwarn("can't get fingerprint: $file\n");
@@ -896,7 +896,7 @@ void diffbits (SV* oldfiles, SV* newfiles, unsigned int percent, unsigned limit)
 
 	/* look for matches */
 	Inline_Stack_Reset;
-	for (a=the_data, i=0, m=(limit>0 ? new-1 : numkeys-1); i<m; a++, i++) {
+	for (a=the_data, i=0, m=(limit>0 ? new : numkeys-1); i<m; a++, i++) {
 		for (b=a+1, j=i+1; j<numkeys; b++, j++) {
 			for (bits=0, k=0; k<FP_CHUNKS; k++) {
 				bits += lookup[(*a)[k]^(*b)[k]];
