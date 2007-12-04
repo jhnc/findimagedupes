@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.3 2006/11/27 00:10:34 jhnc Exp $
+# $Id: findimagedupes,v 2.4 2007/12/04 20:08:40 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -297,6 +297,7 @@ sub process_file {
 			my $fp = fingerprint($file);
 			if ($fp) {
 				$filelist{$file} = $fp;
+				delete $fpcache{$file};
 				$mergelist{$file} = $filelist{$file} if $rw;
 			}
 		}
