@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.6 2007/12/05 09:42:00 jhnc Exp $
+# $Id: findimagedupes,v 2.7 2007/12/05 10:00:56 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -761,6 +761,8 @@ To be written.
 There is a memory leak somewhere.
 
 Killing the programme may corrupt the fingerprint database(s).
+
+Changing version of GraphicsMagick invalidates fingerprint databases.
 
 =head1 NOTES
 

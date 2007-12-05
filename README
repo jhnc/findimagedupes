@@ -186,6 +186,8 @@ BUGS
 
     Killing the programme may corrupt the fingerprint database(s).
 
+    Changing version of GraphicsMagick invalidates fingerprint databases.
+
 NOTES
     Directory recursion is deliberately not implemented: Composing a
     file-list and using it with "-" is a more flexible approach.

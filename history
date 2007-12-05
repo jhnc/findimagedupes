@@ -1,3 +1,7 @@
+revision 2.7
+date: 2007/12/05 10:00:56
+Added note about fingerprint database compatibility.
+----------------------------
 revision 2.6
 date: 2007/12/05 09:42:00
 Require GPL version 3.
