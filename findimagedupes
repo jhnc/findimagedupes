@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.8 2008/01/28 11:14:48 jhnc Exp $
+# $Id: findimagedupes,v 2.9 2008/01/28 22:41:20 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -859,7 +859,7 @@ unsigned int simplecountbits (unsigned int i) {
 void diffbits (SV* oldfiles, SV* newfiles, unsigned int threshold, unsigned limit) {
 	FP *the_data, *a, *b;
 	unsigned int lookup[LOOKUP_SIZE];
-	unsigned int i, j, k, m, bits, threshold, old, new;
+	unsigned int i, j, k, m, bits, old, new;
 	HV *oldhash;
 	HE *oldhash_entry;
 	HV *newhash;

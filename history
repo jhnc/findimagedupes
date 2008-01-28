@@ -1,3 +1,7 @@
+revision 2.9
+date: 2008/01/28 22:41:20
+Forgot to delete the extraneous threshold declaration.
+----------------------------
 revision 2.8
 date: 2008/01/28 11:14:48
 Threshold limit was inconsistent (100 in one place, 99 in another).
