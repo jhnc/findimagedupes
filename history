@@ -1,3 +1,10 @@
+revision 2.8
+date: 2008/01/28 11:14:48
+Threshold limit was inconsistent (100 in one place, 99 in another).
+Allow specifying threshold as percent or directly in bits.
+Allow threshold to have a fractional part.
+Updated manpage for threshold.
+----------------------------
 revision 2.7
 date: 2007/12/05 10:00:56
 Added note about fingerprint database compatibility.

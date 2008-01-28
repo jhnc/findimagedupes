@@ -12,7 +12,7 @@ SYNOPSIS
           -r, --rescan               -q, --quiet
           -n, --no-compare           -v, --verbosity=LIST
                                      -d, --debug=OPTS
-          -t, --threshold=NUM
+          -t, --threshold=AMOUNT
                                      -h, --help
           -0, --null                     --man
 
@@ -123,9 +123,16 @@ OPTIONS
 
             To display to terminal (or feed into a pipe), use "-" as *FILE*.
 
-    -t, --threshold=*NUM*
-            Use *NUM* as threshold% of similarity. Default is 90 if not
-            specified.
+    -t, --threshold=*AMOUNT*
+            Use *AMOUNT* as threshold of similarity. Append "%" to give a
+            percentage or "b" for bits. For backwards compatibility, a
+            number with no unit is treated as a percentage. Percentage is
+            the minimum required for a match; bits is the maximum that may
+            differ: bits=floor(2.56(100-percent))
+
+            A fractional part may be given but it is only accurate to
+            100/256 (0.390625) for percentage and it is meaningless for
+            "bits". Default is "90%" ("25b") if not specified.
 
     -v, --verbosity=*LIST*
             Enable display of informational messages to stdout, where *LIST*
@@ -133,7 +140,7 @@ OPTIONS
 
             md5     Display the checksum for each file, as per md5sum(1).
 
-            fingerprint,fp
+            fingerprint | fp
                     Display the base64-encoded fingerprint of each file.
 
             Alternatively, --verbosity may be given multiple times, and

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.7 2007/12/05 10:00:56 jhnc Exp $
+# $Id: findimagedupes,v 2.8 2008/01/28 11:14:48 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -63,7 +63,7 @@ use vars qw(
 
 $add = 0;
 $quiet = 0;
-$threshold = 90;
+$threshold = '90%';
 
 my %opt;
 GetOptions(
@@ -79,7 +79,7 @@ GetOptions(
 	'q|quiet'                => sub { $quiet++ },
 	'r|rescan'               => \$rescan,
 	's|script=s'             => \$script,
-	't|threshold=i'          => \$threshold,
+	't|threshold=s'          => \$threshold,
 	'v|verbosity=s'          => \@verbosity,
 	'man'                    => sub { pod2usage(-verbose => 2) },
 	'prune'                  => \$prune,
@@ -193,8 +193,21 @@ if ($script and -e($script)) {
 	mkerr("Output file for --script exists: $script");
 }
 
-if ($threshold>100 or $threshold<0) {
-	mkerr("--threshold takes values between 0 and 100");
+my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/;
+if ($thres_unit eq '' or $thres_unit eq '%') {
+	# percentage to bits
+	$threshold = int(2.56 * (100 - $thres_val));
+}
+elsif ($thres_unit =~ m/^b/i) {
+	# already in bits
+	$threshold = int($thres_val);
+}
+else {
+	# error
+	$threshold = -1;
+}
+if ($threshold>256 or $threshold<0) {
+	mkerr("--threshold takes values between 0.0% .. 100.0% or 0b .. 256b");
 }
 
 for (split(",", join(",", @verbosity))) {
@@ -526,7 +539,7 @@ findimagedupes [option ...] [--] [ - | [file ...] ]
       -r, --rescan               -q, --quiet
       -n, --no-compare           -v, --verbosity=LIST
                                  -d, --debug=OPTS
-      -t, --threshold=NUM
+      -t, --threshold=AMOUNT
                                  -h, --help
       -0, --null                     --man
 
@@ -664,10 +677,17 @@ is generated, which simply echo(1)s its arguments.
 
 To display to terminal (or feed into a pipe), use C<-> as I<FILE>.
 
-=item B<-t>, B<--threshold>=I<NUM>
+=item B<-t>, B<--threshold>=I<AMOUNT>
 
-Use I<NUM> as threshold% of similarity.
-Default is 90 if not specified.
+Use I<AMOUNT> as threshold of similarity.
+Append C<%> to give a percentage or C<b> for bits.
+For backwards compatibility, a number with no unit is treated as
+a percentage. Percentage is the minimum required for a match;
+bits is the maximum that may differ: bits=floor(2.56(100-percent))
+
+A fractional part may be given but it is only accurate to 100/256
+(0.390625) for percentage and it is meaningless for C<bits>.
+Default is C<90%> (C<25b>) if not specified.
 
 =item B<-v>, B<--verbosity>=I<LIST>
 
@@ -680,7 +700,7 @@ where I<LIST> is a comma-delimited list of:
 
 Display the checksum for each file, as per md5sum(1).
 
-=item B<fingerprint>,B<fp>
+=item B<fingerprint> | B<fp>
 
 Display the base64-encoded fingerprint of each file.
 
@@ -836,7 +856,7 @@ unsigned int simplecountbits (unsigned int i) {
 	return(res);
 }
 
-void diffbits (SV* oldfiles, SV* newfiles, unsigned int percent, unsigned limit) {
+void diffbits (SV* oldfiles, SV* newfiles, unsigned int threshold, unsigned limit) {
 	FP *the_data, *a, *b;
 	unsigned int lookup[LOOKUP_SIZE];
 	unsigned int i, j, k, m, bits, threshold, old, new;
@@ -848,10 +868,9 @@ void diffbits (SV* oldfiles, SV* newfiles, unsigned int percent, unsigned limit)
 	SV *sv_val;
 	Inline_Stack_Vars;
 
-	if ((percent<1) || (percent>99)) {
-		croak("ridiculous percentage specified");
+	if ((threshold<0) || (threshold>256)) {
+		croak("ridiculous threshold specified");
 	}
-	threshold = floor(2.56*(100-percent));
 
 	/* pack fingerprints into C array */
 	/* partly lifted from Inline::C-Cookbook */
