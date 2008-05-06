@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.9 2008/01/28 22:41:20 jhnc Exp $
+# $Id: findimagedupes,v 2.10 2008/05/06 13:49:13 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -22,7 +22,7 @@
 
 use strict;
 
-require 5.6.1;
+require 5.006_001;
 
 use Cwd qw(realpath);
 use DB_File;
