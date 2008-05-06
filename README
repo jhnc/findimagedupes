@@ -22,6 +22,16 @@ SYNOPSIS
     Directories of images may be specified instead of individual files;
     Sub-directories are NOT searched recursively.
 
+INSTALLATION
+    If you use linux, your distribution may include a prepackaged version.
+    For example, Debian and Ubuntu do.
+
+    Otherwise, at a minimum you'll need Perl with the modules listed at the
+    top of the findimagedupes script. Also the GraphicksMagick package.
+
+    You may need to change Inline's "DIRECTORY" to point somewhere else.
+    Read the Inline module documentation for details.
+
 OPTIONS
     -0, --null
             If a file "-" is given, a list of files is read from stdin.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.10 2008/05/06 13:49:13 jhnc Exp $
+# $Id: findimagedupes,v 2.11 2008/05/06 15:18:24 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -548,6 +548,17 @@ nor update any fingerprint database.
 
 Directories of images may be specified instead of individual files;
 Sub-directories are NOT searched recursively.
+
+=head1 INSTALLATION
+
+If you use linux, your distribution may include a prepackaged version.
+For example, Debian and Ubuntu do.
+
+Otherwise, at a minimum you'll need Perl with the modules listed at the
+top of the findimagedupes script. Also the GraphicksMagick package.
+
+You may need to change Inline's C<DIRECTORY> to point somewhere else.
+Read the Inline module documentation for details.
 
 =head1 OPTIONS
 

@@ -1,3 +1,7 @@
+revision 2.11
+date: 2008/05/06 15:18:24
+Added brief installation notes.
+----------------------------
 revision 2.10
 date: 2008/05/06 13:49:13
 Avoid "v-string in use/require non-portable" warning.
