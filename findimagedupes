@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.11 2008/05/06 15:18:24 jhnc Exp $
+# $Id: findimagedupes,v 2.12 2008/12/08 09:12:04 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -356,7 +356,7 @@ sub classify {
 	}
 	elsif (-d($file) and !-l($file)) {
 		# don't follow directory symlinks, to prevent looping
-		while (glob("$file/*")) {
+		while (glob("\Q$file\E/*")) {
 			chomp;
 			process_file($_) if (-f($_)); # no recursing
 		}	

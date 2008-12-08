@@ -1,3 +1,7 @@
+revision 2.12
+date: 2008/12/08 09:12:04
+Escape glob argument properly.
+----------------------------
 revision 2.11
 date: 2008/05/06 15:18:24
 Added brief installation notes.
