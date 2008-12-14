@@ -1,3 +1,7 @@
+revision 2.16
+date: 2008/12/14 03:59:15
+cleanup of --collection code
+----------------------------
 revision 2.15
 date: 2008/12/14 03:27:32
 implemented the --collection option

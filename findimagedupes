@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.15 2008/12/14 03:27:32 jhnc Exp $
+# $Id: findimagedupes,v 2.16 2008/12/14 03:59:15 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -504,14 +504,15 @@ sub finddupes {
 EOD
 		for my $k (keys %ptr) {
 			next unless $ptr{$k} eq $k;
-			my @fileset = map { $set{$_} } @{$val{$ptr{$k}}};
-			my @badnames = grep /[\n"]/s, @fileset;
-			if (@badnames) {
-				nqwarn("excluded from $collection: $_\n") for @badnames;
-				print qq{"$_"\n} for grep !/[\n"]/s, @fileset;
-			}
-			else {
-				print qq{"$_"\n} for @fileset;
+			for ( @{$val{$ptr{$k}}} ) {
+				my $name = $set{$_};
+
+				if ( $name =~ /[\n"]/s ) {
+					nqwarn("excluded from $collection: $name\n");
+				}
+				else {
+					print qq{"$name"\n};
+				}
 			}
 		}
 		print "#end\n";
