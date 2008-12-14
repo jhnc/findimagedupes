@@ -1,3 +1,7 @@
+revision 2.15
+date: 2008/12/14 03:27:32
+implemented the --collection option
+----------------------------
 revision 2.14
 date: 2008/12/08 11:37:35
 third attempt at fixing the glob problem

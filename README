@@ -48,9 +48,13 @@ OPTIONS
             Matches are also sought in any fingerprint databases specified.
 
     -c, --collection=*FILE*
-            NOT IMPLEMENTED (does anyone use this option?)
-
             Create GQView collection *FILE*.gqv of duplicates.
+
+            The program attempts to produce well-formed collections. In
+            particular, it will print a warning and exclude any file whose
+            name contains newline or doublequote. In contrast, gqview (as of
+            version 2.0.4) creates a .gqv collection file that it cannot
+            read.
 
     -d, --debug=*OPTS*
             Enable debugging output. Options *OPTS* are subject to change.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.14 2008/12/08 11:37:35 jhnc Exp $
+# $Id: findimagedupes,v 2.15 2008/12/14 03:27:32 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -69,7 +69,7 @@ my %opt;
 GetOptions(
 	'0|null'                 => \$null,
 	'a|add'                  => \$add,
-	'c|collection=s'         => \$collection,
+	'c|collection=s'         => sub { ($collection = $_[1]) =~ s/([.]gqv)?$/.gqv/ },
 	'd|debug=s@'             => \@debug,
 	'f|fingerprints|fp|db=s' => \@fpdb,
 	'h|?|help'               => sub { pod2usage(-verbose => 1) },
@@ -493,6 +493,31 @@ sub finddupes {
 		$cnt++;
 	}
 
+	if ($collection) {
+		open(COLLECTION, "> $collection") or nqdie2("open(> $collection): $!\n");
+		select(COLLECTION);
+
+		print <<'EOD';
+#GQview collection
+#created with findimagedupes
+#sort: manual
+EOD
+		for my $k (keys %ptr) {
+			next unless $ptr{$k} eq $k;
+			my @fileset = map { $set{$_} } @{$val{$ptr{$k}}};
+			my @badnames = grep /[\n"]/s, @fileset;
+			if (@badnames) {
+				nqwarn("excluded from $collection: $_\n") for @badnames;
+				print qq{"$_"\n} for grep !/[\n"]/s, @fileset;
+			}
+			else {
+				print qq{"$_"\n} for @fileset;
+			}
+		}
+		print "#end\n";
+		close(COLLECTION);
+	}
+
 	if ($script) {
 		open(COMMANDS, "> $script") or nqdie2("open(> $script): $!\n");
 	}
@@ -501,9 +526,10 @@ sub finddupes {
 	}
 	select(COMMANDS);
 
-	unless ($program) {
-		$program = 'VIEW';
-		print <<'EOD';
+	if ($script or $program or !$collection) {
+		unless ($program) {
+			$program = 'VIEW';
+			print <<'EOD';
 #!/bin/sh
 
 VIEW(){
@@ -511,15 +537,16 @@ VIEW(){
 }
 
 EOD
-	}
+		}
 
-	for my $k (keys %ptr) {
-		next unless $ptr{$k} eq $k;
-		print join(" \\\n\t",
-			$program,
-			( map { quotemeta $set{$_} } @{$val{$ptr{$k}}} ),
-			";\n"
-		);
+		for my $k (keys %ptr) {
+			next unless $ptr{$k} eq $k;
+			print join(" \\\n\t",
+				$program,
+				( map { quotemeta $set{$_} } @{$val{$ptr{$k}}} ),
+				";\n"
+			);
+		}
 	}
 	close(COMMANDS);
 }
@@ -587,9 +614,13 @@ Matches are also sought in any fingerprint databases specified.
 
 =item B<-c>, B<--collection>=I<FILE>
 
-B<NOT IMPLEMENTED> (does anyone use this option?)
-
 Create GQView collection I<FILE>.gqv of duplicates.
+
+The program attempts to produce well-formed collections.
+In particular, it will print a warning and exclude any file
+whose name contains newline or doublequote. In contrast,
+gqview (as of version 2.0.4) creates a .gqv collection file
+that it cannot read.
 
 =item B<-d>, B<--debug>=I<OPTS>
 
