@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.16 2008/12/14 03:59:15 jhnc Exp $
+# $Id: findimagedupes,v 2.17 2008/12/15 21:43:25 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -27,7 +27,7 @@ require 5.006_001;
 use Cwd qw(realpath);
 use DB_File;
 use Digest::MD5 qw(md5_hex);
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case require_order);
 use File::MimeInfo::Magic;
 use File::Temp qw(tempdir tempfile);
 use Graphics::Magick;
@@ -55,7 +55,10 @@ use vars qw(
 	$program
 	$quiet
 	$rescan
+	$recurse
 	$script
+	@scriptCode
+	$scriptFile
 	$threshold
 	@verbosity
 	$prune
@@ -70,19 +73,23 @@ GetOptions(
 	'0|null'                 => \$null,
 	'a|add'                  => \$add,
 	'c|collection=s'         => sub { ($collection = $_[1]) =~ s/([.]gqv)?$/.gqv/ },
-	'd|debug=s@'             => \@debug,
+	'd|debug=s'              => \@debug,
 	'f|fingerprints|fp|db=s' => \@fpdb,
 	'h|?|help'               => sub { pod2usage(-verbose => 1) },
-	'm|merge=s'              => \$merge,
+	'man'                    => sub { pod2usage(-verbose => 2) },
+	'M|merge=s'              => \$merge,
 	'n|no-compare'           => \$nocompare,
+	'P|prune'                => \$prune,
 	'p|program=s'            => \$program,
 	'q|quiet'                => sub { $quiet++ },
+	'R|recurse'              => \$recurse,
 	'r|rescan'               => \$rescan,
 	's|script=s'             => \$script,
 	't|threshold=s'          => \$threshold,
 	'v|verbosity=s'          => \@verbosity,
-	'man'                    => sub { pod2usage(-verbose => 2) },
-	'prune'                  => \$prune,
+
+	'i|include=s'            => \@scriptCode,
+	'I|include-file=s'       => \$scriptFile,
 ) or pod2usage(-verbose => 0);
 
 # ----------------------------------------------------------------------
@@ -108,6 +115,17 @@ sub nqexit { warn("Error: ", @_) if $quiet<2; exit(3); }
 my $inFP = 0;
 $SIG{SEGV} = sub { die $inFP ? "caught segfault" : ()};
 
+sub printScriptFile {
+	print("# BEGIN USER FILE INCLUDE\n");
+	open(USERSCRIPT, "< $scriptFile") or die("$!\n");
+	while (<USERSCRIPT>) {
+		chomp;
+		print "$_\n";
+	}
+	close(USERSCRIPT);
+	print("# END USER FILE INCLUDE\n\n");
+}
+
 # ----------------------------------------------------------------------
 #
 # setup
@@ -123,6 +141,35 @@ my (%fpcache, %filelist);
 my $image = Graphics::Magick->new;
 
 for (@debug) { $debug{$_} = 1 }
+
+map { chomp; $_ .= "\n" } @scriptCode;
+
+if (@scriptCode) {
+	unshift(@scriptCode, "# BEGIN USER CODE INCLUDE\n" );
+	   push(@scriptCode, "# END USER CODE INCLUDE\n\n" );
+}
+
+my $scriptHeader = <<'EOD';
+#!/bin/sh
+
+VIEW(){
+	echo "$@"
+}
+END(){
+	:;
+}
+
+EOD
+
+my $collectionHeader = <<'EOD';
+#GQview collection
+#created with findimagedupes
+# sort: manual
+EOD
+
+my $collectionFooter = <<'EOD';
+#end
+EOD
 
 # ----------------------------------------------------------------------
 #
@@ -193,12 +240,16 @@ if ($script and -e($script)) {
 	mkerr("Output file for --script exists: $script");
 }
 
-my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/;
+if ($scriptFile and !( -f($scriptFile) and -r($scriptFile) )) {
+	mkerr("File for --include-file does not exist: $scriptFile");
+}
+
+my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/o;
 if ($thres_unit eq '' or $thres_unit eq '%') {
 	# percentage to bits
 	$threshold = int(2.56 * (100 - $thres_val));
 }
-elsif ($thres_unit =~ m/^b/i) {
+elsif ($thres_unit =~ m/^b/oi) {
 	# already in bits
 	$threshold = int($thres_val);
 }
@@ -338,6 +389,13 @@ sub process_file {
 	}
 }
 
+# XXX: This function is complicated by two things:
+#	- Historically we didn't recurse and it would be nice to
+#		retain nonrecursion as an option.
+#	- We need to process "." and ".." when they are given
+#		explicitly on the command line.
+#	Perhaps we could cleanup the code by rewriting using
+#		something like the "-" code?
 sub classify {
 	my ($file) = @_;
 
@@ -359,7 +417,13 @@ sub classify {
 		if (opendir(DIR, $file)) {
 			for (readdir(DIR)) {
 				my $path = "$file/$_";
-				process_file($path) if (-f($path));
+				if (-d($path) and !-l($path)) {
+					next if m/^\.\.?$/o;	# skip . and ..
+					classify($path) if $recurse;
+				}
+				elsif (-f($path)) {
+					process_file($path);
+				}
 			}
 		}
 		else {
@@ -493,15 +557,16 @@ sub finddupes {
 		$cnt++;
 	}
 
+	# FIXME: What is the proper format of collection files?
+	#	It seems to be poorly defined, and gthumb parses them
+	#	differently from gqview itself. In particular, gthumb
+	#	seems to misparse comment lines, and the sort pragma
+	#	it defines seems to be fragile wrt whitespace.
 	if ($collection) {
 		open(COLLECTION, "> $collection") or nqdie2("open(> $collection): $!\n");
 		select(COLLECTION);
 
-		print <<'EOD';
-#GQview collection
-#created with findimagedupes
-#sort: manual
-EOD
+		print $collectionHeader;
 		for my $k (keys %ptr) {
 			next unless $ptr{$k} eq $k;
 			for ( @{$val{$ptr{$k}}} ) {
@@ -515,7 +580,7 @@ EOD
 				}
 			}
 		}
-		print "#end\n";
+		print $collectionFooter;
 		close(COLLECTION);
 	}
 
@@ -528,18 +593,10 @@ EOD
 	select(COMMANDS);
 
 	if ($script or $program or !$collection) {
-		unless ($program) {
-			$program = 'VIEW';
-			print <<'EOD';
-#!/bin/sh
-
-VIEW(){
-	echo "$@"
-}
-
-EOD
-		}
-
+		$program = 'VIEW' unless $program;
+		print $scriptHeader;
+		printScriptFile if $scriptFile;
+		print @scriptCode if @scriptCode;
 		for my $k (keys %ptr) {
 			next unless $ptr{$k} eq $k;
 			print join(" \\\n\t",
@@ -548,6 +605,7 @@ EOD
 				";\n"
 			);
 		}
+		print "\nEND;\n\n";
 	}
 	close(COMMANDS);
 }
@@ -566,21 +624,22 @@ findimagedupes [option ...] [--] [ - | [file ...] ]
 
    Options:
       -f, --fingerprints=FILE    -c, --collection=FILE
-          --merge=FILE           -p, --program=PROGRAM
-          --prune                -s, --script=FILE
-      -a, --add
-      -r, --rescan               -q, --quiet
-      -n, --no-compare           -v, --verbosity=LIST
-                                 -d, --debug=OPTS
-      -t, --threshold=AMOUNT
-                                 -h, --help
-      -0, --null                     --man
+      -M, --merge=FILE           -p, --program=PROGRAM
+      -P, --prune                -s, --script=FILE
+      -a, --add                  -i, --include=TEXT
+      -r, --rescan               -I, --include-file=FILE
+      -n, --no-compare
+                                 -q, --quiet
+      -t, --threshold=AMOUNT     -v, --verbosity=LIST
 
-With no options, compares the specified files and does not use
-nor update any fingerprint database.
+      -0, --null                 -h, --help
+      -R, --recurse                  --man
+
+With no options, compares the specified files and does not use nor
+update any fingerprint database.
 
 Directories of images may be specified instead of individual files;
-Sub-directories are NOT searched recursively.
+Sub-directories of these are not searched unless --recurse is used.
 
 =head1 INSTALLATION
 
@@ -619,9 +678,9 @@ Create GQView collection I<FILE>.gqv of duplicates.
 
 The program attempts to produce well-formed collections.
 In particular, it will print a warning and exclude any file
-whose name contains newline or doublequote. In contrast,
-gqview (as of version 2.0.4) creates a .gqv collection file
-that it cannot read.
+whose name contains newline or doublequote. (In this situation,
+gqview(1) seems to create a .gqv collection file that it
+silently fails to read back in properly.)
 
 =item B<-d>, B<--debug>=I<OPTS>
 
@@ -641,6 +700,21 @@ not be specified as a single comma-delimited list.)
 =item B<-h>, B<--help>
 
 Print usage and option sections of this manual.
+
+=item B<-i>, B<--include>=I<TEXT>
+
+I<TEXT> is Bourne-shell code to customise B<--script>.
+
+It is executed after any code included using B<--include-file>.
+
+May be given multiple times. Code will be concatenated.
+
+=item B<-I>, B<--include-file>=I<FILE>
+
+I<FILE> is a file containing Bourne-shell code to customise 
+B<--script>. 
+
+It is executed before any code included using B<--include>.
 
 =item B<--man>
 
@@ -685,7 +759,11 @@ Don't look for duplicates.
 
 Launch I<PROGRAM> (in foreground) to view each set of dupes.
 
-See also: B<--script>.
+I<PROGRAM> must be the full path to an existing executable file.
+For more flexibility, see the B<--include> and B<--include-file>
+options.
+
+See also: B<--script>
 
 =item B<--prune>
 
@@ -705,6 +783,12 @@ If it is given twice or more, errors are not displayed either.
 
 Information requested with B<--verbosity> is still displayed.
 
+=item B<-R>, B<--recurse>
+
+Use B<--recurse> to search recursively for images inside
+subdirectories. For historical reasons, the default is to not do so.
+To avoid looping, symbolic links to directories are never followed.
+
 =item B<-r>, B<--rescan>
 
 (Re)generate all fingerprints, not just any that are unknown.
@@ -720,10 +804,17 @@ When used with B<--program>, I<PROGRAM> is not launched immediately.
 Instead sh(1)-style commands are saved to I<FILE>.
 This script may be edited (if desired) and then executed manually.
 
-When used without B<--program>, a skeletal shell function C<VIEW>
-is generated, which simply echo(1)s its arguments.
+When used without B<--program>, two skeletal shell functions
+are generated: C<VIEW> simply echo(1)s its arguments; 
+the empty function C<END> runs after files-processing is finished.
 
 To display to terminal (or feed into a pipe), use C<-> as I<FILE>.
+
+If B<--script> is not given, the script is still created in memory and
+is executed immediately. So, with the default VIEW and END functions,
+lines containing sets of duplicates are displayed. See: B<EXAMPLES>
+
+See also: B<--include>, B<--include-file>
 
 =item B<-t>, B<--threshold>=I<AMOUNT>
 
@@ -818,7 +909,22 @@ To be written.
 
 =head1 EXAMPLES
 
-To be written.
+=over 4
+
+=item findimagedupes -R -- .
+
+Look for and compare images in all subdirectories of the current directory.
+
+=item find -type f . -print0 | findimagedupes -0 -- -
+
+Same as above.
+
+=item findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \"file://$f\";done }' -- *.jpg > dupes.gqv
+
+Use script hooks to produce collection-style output
+suitable for use with gthumb(1).
+
+=back
 
 =head1 FILES
 
@@ -850,7 +956,9 @@ fingerprints and another ten minutes to do the actual comparing).
 
 find(1), md5sum(1)
 
-B<gqview> - A simple image viewer using GTK+
+B<gqview> - GTK based multiformat image viewer
+
+B<gthumb> - an image viewer and browser for GNOME
 
 =head1 AUTHOR
 

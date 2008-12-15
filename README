@@ -6,21 +6,22 @@ SYNOPSIS
 
        Options:
           -f, --fingerprints=FILE    -c, --collection=FILE
-              --merge=FILE           -p, --program=PROGRAM
-              --prune                -s, --script=FILE
-          -a, --add
-          -r, --rescan               -q, --quiet
-          -n, --no-compare           -v, --verbosity=LIST
-                                     -d, --debug=OPTS
-          -t, --threshold=AMOUNT
-                                     -h, --help
-          -0, --null                     --man
+          -M, --merge=FILE           -p, --program=PROGRAM
+          -P, --prune                -s, --script=FILE
+          -a, --add                  -i, --include=TEXT
+          -r, --rescan               -I, --include-file=FILE
+          -n, --no-compare
+                                     -q, --quiet
+          -t, --threshold=AMOUNT     -v, --verbosity=LIST
+
+          -0, --null                 -h, --help
+          -R, --recurse                  --man
 
     With no options, compares the specified files and does not use nor
     update any fingerprint database.
 
     Directories of images may be specified instead of individual files;
-    Sub-directories are NOT searched recursively.
+    Sub-directories of these are not searched unless --recurse is used.
 
 INSTALLATION
     If you use linux, your distribution may include a prepackaged version.
@@ -52,9 +53,9 @@ OPTIONS
 
             The program attempts to produce well-formed collections. In
             particular, it will print a warning and exclude any file whose
-            name contains newline or doublequote. In contrast, gqview (as of
-            version 2.0.4) creates a .gqv collection file that it cannot
-            read.
+            name contains newline or doublequote. (In this situation,
+            gqview(1) seems to create a .gqv collection file that it
+            silently fails to read back in properly.)
 
     -d, --debug=*OPTS*
             Enable debugging output. Options *OPTS* are subject to change.
@@ -71,6 +72,19 @@ OPTIONS
 
     -h, --help
             Print usage and option sections of this manual.
+
+    -i, --include=*TEXT*
+            *TEXT* is Bourne-shell code to customise --script.
+
+            It is executed after any code included using --include-file.
+
+            May be given multiple times. Code will be concatenated.
+
+    -I, --include-file=*FILE*
+            *FILE* is a file containing Bourne-shell code to customise
+            --script.
+
+            It is executed before any code included using --include.
 
     --man   Display the full documentation, using default pager.
 
@@ -102,7 +116,11 @@ OPTIONS
     -p, --program=*PROGRAM*
             Launch *PROGRAM* (in foreground) to view each set of dupes.
 
-            See also: --script.
+            *PROGRAM* must be the full path to an existing executable file.
+            For more flexibility, see the --include and --include-file
+            options.
+
+            See also: --script
 
     --prune Remove fingerprint data for images that do not exist any more.
             Has no effect unless --fingerprints or --merge is also used.
@@ -119,6 +137,12 @@ OPTIONS
 
             Information requested with --verbosity is still displayed.
 
+    -R, --recurse
+            Use --recurse to search recursively for images inside
+            subdirectories. For historical reasons, the default is to not do
+            so. To avoid looping, symbolic links to directories are never
+            followed.
+
     -r, --rescan
             (Re)generate all fingerprints, not just any that are unknown.
 
@@ -132,10 +156,18 @@ OPTIONS
             Instead sh(1)-style commands are saved to *FILE*. This script
             may be edited (if desired) and then executed manually.
 
-            When used without --program, a skeletal shell function "VIEW" is
-            generated, which simply echo(1)s its arguments.
+            When used without --program, two skeletal shell functions are
+            generated: "VIEW" simply echo(1)s its arguments; the empty
+            function "END" runs after files-processing is finished.
 
             To display to terminal (or feed into a pipe), use "-" as *FILE*.
+
+            If --script is not given, the script is still created in memory
+            and is executed immediately. So, with the default VIEW and END
+            functions, lines containing sets of duplicates are displayed.
+            See: EXAMPLES
+
+            See also: --include, --include-file
 
     -t, --threshold=*AMOUNT*
             Use *AMOUNT* as threshold of similarity. Append "%" to give a
@@ -197,7 +229,17 @@ DIAGNOSTICS
     To be written.
 
 EXAMPLES
-    To be written.
+    findimagedupes -R -- .
+        Look for and compare images in all subdirectories of the current
+        directory.
+
+    find -type f . -print0 | findimagedupes -0 -- -
+        Same as above.
+
+    findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do
+    echo \"file://$f\";done }' -- *.jpg > dupes.gqv
+        Use script hooks to produce collection-style output suitable for use
+        with gthumb(1).
 
 FILES
     To be written.
@@ -225,7 +267,9 @@ NOTES
 SEE ALSO
     find(1), md5sum(1)
 
-    gqview - A simple image viewer using GTK+
+    gqview - GTK based multiformat image viewer
+
+    gthumb - an image viewer and browser for GNOME
 
 AUTHOR
     Jonathan H N Chin <code@jhnc.org>

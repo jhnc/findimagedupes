@@ -1,3 +1,14 @@
+revision 2.17
+date: 2008/12/15 21:43:25
+By user request, new option: --recurse
+Collection output made more compatible with gthumb. Also, see example.
+New options: --include, --include-file
+Option processing is now case-sensitive.
+Options must precede filenames.
+Short options for --merge and --prune.
+Removed --debug from short help.
+Lots of new documentation.
+----------------------------
 revision 2.16
 date: 2008/12/14 03:59:15
 cleanup of --collection code
