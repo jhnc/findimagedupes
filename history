@@ -1,3 +1,7 @@
+revision 2.18
+date: 2008/12/19 01:04:36
+Corrected copyright and readme text.
+----------------------------
 revision 2.17
 date: 2008/12/15 21:43:25
 By user request, new option: --recurse

@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.17 2008/12/15 21:43:25 jhnc Exp $
+# $Id: findimagedupes,v 2.18 2008/12/19 01:04:36 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
-# Copyright 2006 by Jonathan H N Chin <code@jhnc.org>.
+# Copyright 2006-2008 by Jonathan H N Chin <code@jhnc.org>.
 #
 # This program is free software; you may redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -966,7 +966,7 @@ Jonathan H N Chin <code@jhnc.org>
 
 =head1 COPYRIGHT AND LICENSE
 
- Copyright 2006 by Jonathan H N Chin <code@jhnc.org>.
+ Copyright 2006-2008 by Jonathan H N Chin <code@jhnc.org>.
 
  This program is free software; you may redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
