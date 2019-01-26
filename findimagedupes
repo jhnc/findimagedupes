@@ -881,20 +881,20 @@ B<findimagedupes> compares a list of files for visual similarity.
 
 =over 4
 
-=item 0
+=item B<0>
 
 Success.
 
-=item 1
+=item B<1>
 
 Usage information was requested (B<--help> or B<--man>), or there
 were warnings.
 
-=item 2
+=item B<2>
 
 Invalid options or arguments were provided.
 
-=item 3
+=item B<3>
 
 Runtime error.
 
