@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: findimagedupes,v 2.18 2008/12/19 01:04:36 jhnc Exp $
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
