@@ -635,6 +635,7 @@ findimagedupes [option ...] [--] [ - | [file ...] ]
 
       -0, --null                 -h, --help
       -R, --recurse                  --man
+                                     --version
 
 With no options, compares the specified files and does not use nor
 update any fingerprint database.
