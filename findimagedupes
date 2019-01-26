@@ -700,7 +700,7 @@ not be specified as a single comma-delimited list.)
 
 =item B<-h>, B<--help>
 
-Print usage and option sections of this manual.
+Print usage and option sections of this manual, then exit.
 
 =item B<-i>, B<--include>=I<TEXT>
 
@@ -719,7 +719,7 @@ It is executed before any code included using B<--include>.
 
 =item B<--man>
 
-Display the full documentation, using default pager.
+Display the full documentation, using default pager, then exit.
 
 =item B<--merge>=I<FILE>
 
@@ -849,6 +849,10 @@ Display the base64-encoded fingerprint of each file.
 Alternatively, B<--verbosity> may be given multiple times, and accumulates.
 Note that this may not be sensible. For example, to be useful,
 B<md5> output probably should not be merged with B<fingerprint> data.
+
+=item B<version>
+
+Display the program version, then exit.
 
 =back
 
