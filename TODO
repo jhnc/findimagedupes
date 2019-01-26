@@ -1,24 +1,35 @@
-https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/1308439
-	add --version argumnt
+DONE:
+	added --version argumnt
+	cf. https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/1308439
 
-https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/502224
-	 findimagedupes should be parallelizable
+	fixed pod errors
 
 
-prevent db corruption on abort
+WISHLIST:
+
+	findimagedupes should be parallelizable
+	https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/502224
+
 	use sqlite to store db
 
-implement phash fingerprints
+	prevent db corruption on abort (sqlite transaction?)
 
-pointers to other image-comparison programs
+	implement phash fingerprints
+
+	implement pixel-exact matching (eg. images differing only by exif data; images stored in different lossless formats)
 
 
-warn about false positives
+DOCUMENT:
 
+	add pointers to other image-comparison programs
 
-bugs:
+	warn about false positives
+
+	warn that fingerprint may change if graphicsmagick version changes - warn?
+
+	note that database has to fit in ram
+
+BUGS:
+
 	find/fix memory leak
 
-	currently, database has to fit in ram
-
-	fingerprint may change if graphicsmagick version changes - warn?
