@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+my $Id = '';
 #
 # findimagedupes - Finds visually similar or duplicate images
 #
@@ -86,6 +87,7 @@ GetOptions(
 	's|script=s'             => \$script,
 	't|threshold=s'          => \$threshold,
 	'v|verbosity=s'          => \@verbosity,
+	'version'                => sub { print "findimagedupes $Id\n"; exit(0); },
 
 	'i|include=s'            => \@scriptCode,
 	'I|include-file=s'       => \$scriptFile,
