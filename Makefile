@@ -2,7 +2,7 @@
 STEPS = setversion mkchangelog mkdocs mktar
 
 FILES = findimagedupes COPYING README 
-EPHEMERAL = changelog README VERSION
+EPHEMERAL = history README VERSION
 
 .PHONY: $(STEPS) clean
 
@@ -20,7 +20,7 @@ setversion:
 	./patchver 
 
 mkchangelog:
-	git log > changelog
+	git log --decorate=short > history
 
 mkdocs:
 	perldoc findimagedupes > README
