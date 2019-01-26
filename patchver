@@ -1,0 +1,4 @@
+#!/bin/bash
+
+perl -i -pe 's/^(my \$Id = ).*/$1"'$(cat VERSION)'";/' findimagedupes
+
