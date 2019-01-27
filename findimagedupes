@@ -1008,16 +1008,6 @@ __C__
 
 typedef uint16_t FP[FP_CHUNKS];
 
-unsigned int simplecountbits (unsigned int i) {
-	unsigned int val = i, res = 0;
-
-	while (val) {
-		res += (val&1);
-		val >>= 1;
-	}
-	return(res);
-}
-
 void diffbits (SV* oldfiles, SV* newfiles, unsigned int threshold, unsigned limit) {
 	FP *the_data, *a, *b;
 	unsigned int lookup[LOOKUP_SIZE];
@@ -1072,9 +1062,9 @@ void diffbits (SV* oldfiles, SV* newfiles, unsigned int threshold, unsigned limi
 	}
 
 	/* initialise lookup table */
-	/* XXX: fast enough? could optimise more or compile-in a static table */
+	/* cf. https://graphics.stanford.edu/~seander/bithacks.html */
 	for (i=0; i<LOOKUP_SIZE; i++) {
-		lookup[i] = simplecountbits(i);
+		lookup[i] = lookup[i/2] + (i&1);
 	}
 
 	/* look for matches */
