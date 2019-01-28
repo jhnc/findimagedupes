@@ -9,7 +9,7 @@ EPHEMERAL = history VERSION
 README.md: findimagedupes
 	pod2markdown findimagedupes README.md
 	git add README.md
-	git commit -m 'synchronise README.md with findimagedupes source'
+	git commit -m 'synchronise README.md with findimagedupes source' || true
 
 github: README.md
 	git push github master
