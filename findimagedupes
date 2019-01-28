@@ -917,15 +917,15 @@ To be written.
 
 =over 4
 
-=item findimagedupes -R -- .
+=item C<<<< findimagedupes -R -- . >>>>
 
 Look for and compare images in all subdirectories of the current directory.
 
-=item find -type f . -print0 | findimagedupes -0 -- -
+=item C<<<< find -type f . -print0 | findimagedupes -0 -- - >>>>
 
 Same as above.
 
-=item findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \"file://$f\";done }' -- *.jpg > dupes.gqv
+=item C<<<< findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \"file://$f\";done }' -- *.jpg > dupes.gqv >>>>
 
 Use script hooks to produce collection-style output
 suitable for use with gthumb(1).
