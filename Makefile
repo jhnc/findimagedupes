@@ -12,7 +12,7 @@ README.md: findimagedupes
 	git commit -m 'regenerate github readme'
 
 github: README.md
-	git push github
+	git push github master
 
 all: dist
 
