@@ -1,12 +1,20 @@
 
-STEPS = setversion mkchangelog mkdocs mktar
+STEPS = github dist all
 
 FILES = findimagedupes COPYING README 
 EPHEMERAL = history README VERSION
 
 .PHONY: $(STEPS) clean
 
-all: $(STEPS)
+README.md: findimagedupes
+	pod2markdown findimagedupes README.md
+	git add README.md
+	git commit -m 'regenerate github readme'
+
+github: README.md
+	git push github
+
+all: dist
 
 clean:
 	git checkout -f
@@ -14,17 +22,11 @@ clean:
 reallyclean:
 	git clean -d -f
 
-
-setversion:
+dist:
 	git describe --tags > VERSION
 	./patchver 
-
-mkchangelog:
 	git log --decorate=short > history
-
-mkdocs:
 	perldoc findimagedupes > README
-
-mktar:
 	tar cvzf findimagedupes-`cat VERSION`.gz $(FILES)
+	rm $(EPHEMERAL)
 
