@@ -27,5 +27,6 @@ dist: README.md
 	./patchver 
 	git log --decorate=short > history
 	tar cvzf findimagedupes-`cat VERSION`.gz $(FILES)
+	git checkout findimagedupes
 	rm $(EPHEMERAL)
 
