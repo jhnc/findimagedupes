@@ -272,15 +272,15 @@ To be written.
 
 # EXAMPLES
 
-- findimagedupes -R -- .
+- `findimagedupes -R -- .`
 
     Look for and compare images in all subdirectories of the current directory.
 
-- find -type f . -print0 | findimagedupes -0 -- -
+- `find -type f . -print0 | findimagedupes -0 -- -`
 
     Same as above.
 
-- findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \\"file://$f\\";done }' -- \*.jpg > dupes.gqv
+- `findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \"file://$f\";done }' -- *.jpg > dupes.gqv`
 
     Use script hooks to produce collection-style output
     suitable for use with gthumb(1).
