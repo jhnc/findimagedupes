@@ -1,15 +1,15 @@
 
 STEPS = github dist all
 
-FILES = findimagedupes COPYING README 
-EPHEMERAL = history README VERSION
+FILES = findimagedupes COPYING README.md 
+EPHEMERAL = history VERSION
 
 .PHONY: $(STEPS) clean
 
 README.md: findimagedupes
 	pod2markdown findimagedupes README.md
 	git add README.md
-	git commit -m 'regenerate github readme'
+	git commit -m 'synchronise README.md with findimagedupes source'
 
 github: README.md
 	git push github master
@@ -22,11 +22,10 @@ clean:
 reallyclean:
 	git clean -d -f
 
-dist:
+dist: README.md
 	git describe --tags > VERSION
 	./patchver 
 	git log --decorate=short > history
-	perldoc findimagedupes > README
 	tar cvzf findimagedupes-`cat VERSION`.gz $(FILES)
 	rm $(EPHEMERAL)
 
