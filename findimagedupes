@@ -403,7 +403,7 @@ sub classify {
 	if ($file eq "-") {
 		if ($read_input) {
 			$read_input = 0;
-			while (<>) {
+			while (<STDIN>) {
 				chomp;
 				classify($_);
 			}
