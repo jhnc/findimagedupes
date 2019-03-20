@@ -65,7 +65,6 @@ use vars qw(
 );
 
 $add = 0;
-$quiet = 0;
 $threshold = '90%';
 
 my %opt;
@@ -81,7 +80,7 @@ GetOptions(
 	'n|no-compare'           => \$nocompare,
 	'P|prune'                => \$prune,
 	'p|program=s'            => \$program,
-	'q|quiet'                => sub { $quiet++ },
+	'q|quiet+'               => \$quiet,
 	'R|recurse'              => \$recurse,
 	'r|rescan'               => \$rescan,
 	's|script=s'             => \$script,
