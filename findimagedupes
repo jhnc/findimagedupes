@@ -65,6 +65,7 @@ use vars qw(
 );
 
 $add = 0;
+$quiet = 0;
 $threshold = '90%';
 
 my %opt;
