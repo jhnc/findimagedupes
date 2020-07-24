@@ -942,7 +942,13 @@ There is a memory leak somewhere.
 
 Killing the programme may corrupt the fingerprint database(s).
 
+The program does not lock the fingerprint database although concurrent
+write access to it is unsafe.
+
+GraphicsMagick does not expose its auto-orient functionality to Perl.
+
 Changing version of GraphicsMagick invalidates fingerprint databases.
+
 
 =head1 NOTES
 
