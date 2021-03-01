@@ -304,9 +304,11 @@ for my $db (@fpdb) {
 		next if ($prune && !-f($file));
 
 		if (exists $fpcache{$file}) {
-			# duplicate fingerprint, force regeneration
-			push @regen, $file;
-			delete $fpcache{$file};
+			if ($fpcache{$file} ne $fp) {
+				# fingerprint mismatch, force regeneration
+				push @regen, $file;
+				delete $fpcache{$file};
+			}
 		}
 		else {
 			$fpcache{$file} = $fp;
