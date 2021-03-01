@@ -219,11 +219,6 @@ if (@fpdb>1 and !$merge) {
 	mkerr("Require --merge if using multiple fingerprint databases");
 }
 
-# XXX: not sure this is true any more
-#if (@fpdb<1 and $merge) {
-#	mkerr("Cannot use --merge unless --fingerprints also specified");
-#}
-
 if ($merge and -e($merge)) {
 	mkerr("Output file for --merge exists: $merge");
 }
