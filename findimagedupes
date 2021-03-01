@@ -295,6 +295,8 @@ unless (@ARGV>0 or @fpdb or $merge) {
 # load fingerprint cache
 #
 
+my @regen = ();
+
 for my $db (@fpdb) {
 	my %data;
 	tie(%data, 'DB_File', $db) or nqexit("tie($db): $!\n");
@@ -303,6 +305,7 @@ for my $db (@fpdb) {
 
 		if (exists $fpcache{$file}) {
 			# duplicate fingerprint, force regeneration
+			push @regen, $file;
 			delete $fpcache{$file};
 		}
 		else {
@@ -334,7 +337,7 @@ elsif (@fpdb==1) {
 $| = 1;
 $/ = "\0" if $null;
 
-for (@ARGV) {
+for (@regen, @ARGV) {
 	classify($_);
 }
 
