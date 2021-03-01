@@ -337,7 +337,7 @@ elsif (@fpdb==1) {
 $| = 1;
 $/ = "\0" if $null;
 
-for (@regen, @ARGV) {
+for (@ARGV ? @ARGV : @regen) {
 	classify($_);
 }
 
