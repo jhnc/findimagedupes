@@ -51,6 +51,7 @@ use vars qw(
 	@debug %debug
 	@fpdb
 	$merge
+	$mergeFile
 	$nocompare
 	$program
 	$quiet
@@ -77,7 +78,7 @@ GetOptions(
 	'f|fingerprints|fp|db=s' => \@fpdb,
 	'h|?|help'               => sub { pod2usage(-verbose => 1) },
 	'man'                    => sub { pod2usage(-verbose => 2) },
-	'M|merge=s'              => \$merge,
+	'M|merge=s'              => sub { $merge = 1; $mergeFile = $_[1]; },
 	'n|no-compare'           => \$nocompare,
 	'P|prune'                => \$prune,
 	'p|program=s'            => \$program,
@@ -198,6 +199,15 @@ if ($nocompare) {
 	mkwarn("--script ignored because --no-compare given") if $script;
 }
 
+if ($merge and $mergeFile eq '/dev/null') {
+	$mergeFile = undef; # use DB_File memory database
+	mkwarn("merge database is temporary");
+}
+
+if ($prune and $merge and !defined($mergeFile)) {
+	mkwarn("--prune is pointless when --merge database is temporary");
+}
+
 if (@warnings and !$quiet) {
 	warn( join("\n", map {"Warning: $_"} @warnings), "\n" );
 }
@@ -219,8 +229,8 @@ if (@fpdb>1 and !$merge) {
 	mkerr("Require --merge if using multiple fingerprint databases");
 }
 
-if ($merge and -e($merge)) {
-	mkerr("Output file for --merge exists: $merge");
+if ($merge and defined($mergeFile) and -e($mergeFile)) {
+	mkerr("Output file for --merge exists: $mergeFile");
 }
 
 if ($program) {
@@ -321,7 +331,7 @@ my %mergelist;
 my $rw = 0;
 
 if ($merge) {
-	tie(%mergelist, 'DB_File', $merge) or nqexit("tie($merge): $!\n");
+	tie(%mergelist, 'DB_File', $mergeFile) or nqexit("tie($merge): $!\n");
 	%mergelist = %fpcache;
 	$rw = 1;
 }
@@ -752,6 +762,9 @@ will be copied or (re)generated as appropriate.
 
 When B<--merge> is used, the original fingerprint databases are not modified,
 even if B<--prune> is used.
+
+If multiple fingerprint databases are to be used but the merge output is
+not required, specify: B<--merge>=I</dev/null>
 
 See also: B<--rescan>
 
