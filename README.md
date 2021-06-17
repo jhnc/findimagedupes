@@ -123,6 +123,9 @@ Read the Inline module documentation for details.
     When **--merge** is used, the original fingerprint databases are not modified,
     even if **--prune** is used.
 
+    If multiple fingerprint databases are to be used but the merge output is
+    not required, specify: **--merge**=_/dev/null_
+
     See also: **--rescan**
 
 - **-n**, **--no-compare**
