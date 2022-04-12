@@ -276,7 +276,7 @@ To be written.
 
     Look for and compare images in all subdirectories of the current directory.
 
-- `find -type f . -print0 | findimagedupes -0 -- -`
+- `find . -type f -print0 | findimagedupes -0 -- -`
 
     Same as above.
 
