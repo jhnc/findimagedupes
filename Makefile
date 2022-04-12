@@ -1,7 +1,7 @@
 
 STEPS = github dist all
 
-FILES = findimagedupes COPYING README.md 
+FILES = findimagedupes COPYING README.md history
 EPHEMERAL = history VERSION
 
 .PHONY: $(STEPS) clean
