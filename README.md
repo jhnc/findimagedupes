@@ -330,7 +330,7 @@ Jonathan H N Chin <code@jhnc.org>
 
 # COPYRIGHT AND LICENSE
 
-    Copyright 2006-2019 by Jonathan H N Chin <code@jhnc.org>.
+    Copyright © 2006-2022 by Jonathan H N Chin <code@jhnc.org>.
 
     This program is free software; you may redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -351,3 +351,11 @@ Jonathan H N Chin <code@jhnc.org>
 This code has been written from scratch. However it owes its existence
 to **findimagedupes** by Rob Kudla and uses the same duplicate-detection
 algorithm.
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 981:
+
+    Non-ASCII character seen before =encoding in '©'. Assuming UTF-8
