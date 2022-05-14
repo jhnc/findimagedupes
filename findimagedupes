@@ -615,6 +615,8 @@ sub finddupes {
 
 __DATA__
 
+=encoding UTF-8
+
 =head1 NAME
 
 findimagedupes - Finds visually similar or duplicate images
