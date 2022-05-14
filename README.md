@@ -351,11 +351,3 @@ Jonathan H N Chin <code@jhnc.org>
 This code has been written from scratch. However it owes its existence
 to **findimagedupes** by Rob Kudla and uses the same duplicate-detection
 algorithm.
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 981:
-
-    Non-ASCII character seen before =encoding in '©'. Assuming UTF-8
