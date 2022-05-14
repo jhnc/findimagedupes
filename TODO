@@ -1,12 +1,3 @@
-DONE:
-	added --version argumnt
-	cf. https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/1308439
-
-	SECURITY: mitigate https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=920269
-
-	fixed some pod errors
-
-
 WISHLIST:
 	findimagedupes should be parallelizable
 	https://bugs.launchpad.net/ubuntu/+source/findimagedupes/+bug/502224
@@ -21,6 +12,8 @@ WISHLIST:
 
 	benchmark against naive use of gcc's _builtin_popcountll
 
+	handle HEIC image format
+
 
 DOCUMENT:
 
@@ -28,7 +21,7 @@ DOCUMENT:
 
 	warn about false positives
 
-	warn that fingerprint may change if graphicsmagick version changes - warn?
+	warn that fingerprint may change if graphicsmagick version changes
 
 	note that database has to fit in ram
 
