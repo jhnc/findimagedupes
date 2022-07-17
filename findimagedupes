@@ -966,6 +966,10 @@ a hundred-thousand files at once (and the program will run quite slowly
 with that many files anyway---about eight hours initially to generate
 fingerprints and another ten minutes to do the actual comparing).
 
+Fingerprinting images is a bottleneck but unfortunately the program was
+not written with parallel processing in mind. For a workaround, see:
+https://github.com/jhnc/findimagedupes/issues/9
+
 =head1 SEE ALSO
 
 find(1), md5sum(1)
