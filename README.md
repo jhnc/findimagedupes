@@ -142,7 +142,7 @@ Read the Inline module documentation for details.
 
     See also: **--script**
 
-- **--prune**
+- **-p**, **--prune**
 
     Remove fingerprint data for images that do not exist any more.
     Has no effect unless **--fingerprints** or **--merge** is also used.
