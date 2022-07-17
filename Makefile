@@ -25,7 +25,7 @@ reallyclean:
 dist: README.md
 	git describe --tags > VERSION
 	./patchver 
-	git log --decorate=short > history
+	git log --decorate=short -- findimagedupes > history
 	tar cvzf findimagedupes-`cat VERSION`.tar.gz $(FILES)
 	git checkout findimagedupes
 	rm $(EPHEMERAL)
