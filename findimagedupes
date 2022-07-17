@@ -955,7 +955,7 @@ To be written.
 
 There is a memory leak somewhere.
 
-Killing the programme may corrupt the fingerprint database(s).
+Killing the program may corrupt the fingerprint database(s).
 
 The program does not lock the fingerprint database although concurrent
 write access to it is unsafe.
