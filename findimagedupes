@@ -724,7 +724,7 @@ It is executed before any code included using B<--include>.
 
 Display the full documentation, using default pager, then exit.
 
-=item B<--merge>=I<FILE>
+=item B<-M>, B<--merge>=I<FILE>
 
 Takes any databases specified with B<--fingerprints>
 and merges them into a new database called I<FILE>.
