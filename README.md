@@ -103,7 +103,7 @@ Read the Inline module documentation for details.
 
     Display the full documentation, using default pager, then exit.
 
-- **--merge**=_FILE_
+- **-M**, **--merge**=_FILE_
 
     Takes any databases specified with **--fingerprints**
     and merges them into a new database called _FILE_.
@@ -122,6 +122,9 @@ Read the Inline module documentation for details.
 
     When **--merge** is used, the original fingerprint databases are not modified,
     even if **--prune** is used.
+
+    If multiple fingerprint databases are to be used but the merge output is
+    not required, specify: **--merge**=_/dev/null_
 
     See also: **--rescan**
 
@@ -315,6 +318,10 @@ machine has less than 128MB of free RAM and you try to compare more than
 a hundred-thousand files at once (and the program will run quite slowly
 with that many files anyway---about eight hours initially to generate
 fingerprints and another ten minutes to do the actual comparing).
+
+Fingerprinting images is a bottleneck but unfortunately the program was
+not written with parallel processing in mind. For a workaround, see:
+https://github.com/jhnc/findimagedupes/issues/9
 
 # SEE ALSO
 
