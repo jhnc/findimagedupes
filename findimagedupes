@@ -782,7 +782,7 @@ options.
 
 See also: B<--script>
 
-=item B<-p>, B<--prune>
+=item B<-P>, B<--prune>
 
 Remove fingerprint data for images that do not exist any more.
 Has no effect unless B<--fingerprints> or B<--merge> is also used.
