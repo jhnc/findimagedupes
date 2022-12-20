@@ -866,7 +866,7 @@ Alternatively, B<--verbosity> may be given multiple times, and accumulates.
 Note that this may not be sensible. For example, to be useful,
 B<md5> output probably should not be merged with B<fingerprint> data.
 
-=item B<version>
+=item B<--version>
 
 Display the program version, then exit.
 
