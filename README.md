@@ -222,7 +222,7 @@ Read the Inline module documentation for details.
     Note that this may not be sensible. For example, to be useful,
     **md5** output probably should not be merged with **fingerprint** data.
 
-- **version**
+- **--version**
 
     Display the program version, then exit.
 
@@ -283,7 +283,7 @@ To be written.
 
     Same as above.
 
-- `findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@";do echo \"file://$f\";done }' -- *.jpg > dupes.gqv`
+- `findimagedupes -i 'echo "# sort: manual"' -i 'VIEW(){ for f in "$@"; do echo \"file://$f\"; done; }' -- *.jpg > dupes.gqv`
 
     Use script hooks to produce collection-style output
     suitable for use with gthumb(1).
