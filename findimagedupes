@@ -255,7 +255,7 @@ if ($scriptFile) {
 	}
 }
 
-if (my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/) {
+if (my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)\s*([%b]?)\s*$/) {
 	if ($thres_unit eq '' or $thres_unit eq '%') {
 		# percentage to bits
 		$threshold = int(2.56 * (100 - $thres_val));
