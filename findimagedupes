@@ -144,11 +144,11 @@ my $image = Graphics::Magick->new;
 
 for (@debug) { $debug{$_} = 1 }
 
-map { chomp; $_ .= "\n" } @scriptCode;
+for (@scriptCode) { chomp; $_ .= "\n" }
 
 if (@scriptCode) {
 	unshift(@scriptCode, "# BEGIN USER CODE INCLUDE\n" );
-	   push(@scriptCode, "# END USER CODE INCLUDE\n\n" );
+	push(@scriptCode, "# END USER CODE INCLUDE\n\n" );
 }
 
 my $scriptHeader = <<'EOD';
@@ -186,7 +186,7 @@ if ($read_input>1) {
 	mkwarn("extra occurrences of \"-\" will be ignored");
 }
 
-if ($null and !grep(/^-$/, @ARGV)) {
+if ($null and !$read_input) {
 	mkwarn("--null has no effect in this context");
 }
 
@@ -246,18 +246,24 @@ if ($script and -e($script)) {
 	mkerr("Output file for --script exists: $script");
 }
 
-if ($scriptFile and !( -f($scriptFile) and -r($scriptFile) )) {
-	mkerr("File for --include-file does not exist: $scriptFile");
+if ($scriptFile) {
+	if (! -f($scriptFile)) {
+		mkerr("File for --include-file does not exist: $scriptFile");
+	}
+	elsif (! -r($scriptFile)) {
+		mkerr("File for --include-file is not readable: $scriptFile");
+	}
 }
 
-my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/o;
-if ($thres_unit eq '' or $thres_unit eq '%') {
-	# percentage to bits
-	$threshold = int(2.56 * (100 - $thres_val));
-}
-elsif ($thres_unit =~ m/^b/oi) {
-	# already in bits
-	$threshold = int($thres_val);
+if (my ($thres_val, $thres_unit) = $threshold =~ m/^\s*(\d+(?:[.]\d+)?)(.*?)\s*$/) {
+	if ($thres_unit eq '' or $thres_unit eq '%') {
+		# percentage to bits
+		$threshold = int(2.56 * (100 - $thres_val));
+	}
+	elsif ($thres_unit =~ m/^b/i) {
+		# already in bits
+		$threshold = int($thres_val);
+	}
 }
 else {
 	# error
@@ -429,7 +435,7 @@ sub classify {
 			for (readdir(DIR)) {
 				my $path = "$file/$_";
 				if (-d($path) and !-l($path)) {
-					next if m/^\.\.?$/o;	# skip . and ..
+					next if m/^\.\.?$/;	# skip . and ..
 					classify($path) if $recurse;
 				}
 				elsif (-f($path)) {
