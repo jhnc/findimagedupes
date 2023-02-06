@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 my $Id = '';
 #
 # findimagedupes - Finds visually similar or duplicate images
@@ -21,6 +21,7 @@ my $Id = '';
 #
 
 use strict;
+use warnings;
 
 require 5.006_001;
 
