@@ -142,6 +142,7 @@ my (%fpcache, %filelist);
 my $image = Graphics::Magick->new;
 
 for (@debug) { $debug{$_} = 1 }
+# nohidestderr
 
 for (@scriptCode) { chomp; $_ .= "\n" }
 
@@ -469,12 +470,14 @@ sub fingerprint {
 	my ($file) = @_;
 	my $blob;
 
-	# imagemagick doesn't always catch output from the programs
-	# it spawns, so we have to clean up for it...
-	open(SAVED_OUT, ">&", \*STDOUT) or nqdie2("open(/dev/null): $!");
-	open(SAVED_ERR, ">&", \*STDERR) or nqdie2("open(/dev/null): $!");
-	open(STDOUT, ">/dev/null");
-	open(STDERR, ">/dev/null");
+	unless ($debug{nohidestderr}) {
+		# imagemagick doesn't always catch output from the programs
+		# it spawns, so we have to clean up for it...
+		open(SAVED_OUT, ">&", \*STDOUT) or nqdie2("open(/dev/null): $!");
+		open(SAVED_ERR, ">&", \*STDERR) or nqdie2("open(/dev/null): $!");
+		open(STDOUT, ">/dev/null");
+		open(STDERR, ">/dev/null");
+	}
 
 	$inFP = 1;
 	my $result = eval {
@@ -512,10 +515,12 @@ sub fingerprint {
 	$inFP = 0;
 	@$image = ();
 
-	open(STDOUT, ">&", \*SAVED_OUT) or nqdie2("open(/dev/null): $!");
-	open(STDERR, ">&", \*SAVED_ERR) or nqdie2("open(/dev/null): $!");
-	close(SAVED_OUT);
-	close(SAVED_ERR);
+	unless ($debug{nohidestderr}) {
+		open(STDOUT, ">&", \*SAVED_OUT) or nqdie2("open(/dev/null): $!");
+		open(STDERR, ">&", \*SAVED_ERR) or nqdie2("open(/dev/null): $!");
+		close(SAVED_OUT);
+		close(SAVED_ERR);
+	}
 
 	if (defined $result) {
 		return $blob;
