@@ -62,7 +62,7 @@ use vars qw(
 	@scriptCode
 	$scriptFile
 	$threshold
-	@verbosity
+	@verbosity %verbosity
 	$prune
 );
 
@@ -133,8 +133,6 @@ sub printScriptFile {
 #
 # setup
 #
-
-my ($verb_fp, $verb_md5);
 
 my $read_input = grep(/^-$/, @ARGV);
 
@@ -274,9 +272,9 @@ if ($threshold>256 or $threshold<0) {
 	mkerr("--threshold takes values between 0.0% .. 100.0% or 0b .. 256b");
 }
 
-for (split(",", join(",", @verbosity))) {
-	/^(fingerprint|fp)$/ && do { $verb_fp = 1;  next; };
-	/^md5$/              && do { $verb_md5 = 1; next; };
+for (map {split","} @verbosity) {
+	/^(fingerprint|fp)$/ && do { $verbosity{fp} = 1;  next; };
+	/^md5$/              && do { $verbosity{md5} = 1; next; };
 	mkerr("unknown option to --verbosity: $_");
 }
 
@@ -383,7 +381,7 @@ sub process_file {
 			$mergelist{$file} = $filelist{$file} if $rw;
 		}
 
-		if ($verb_fp) {
+		if ($verbosity{fp}) {
 			my $fp = ( $filelist{$file} || $fpcache{$file} );
 			if ($fp) {
 				print(encode_base64($fp, ""), "  $file\n");
@@ -392,7 +390,7 @@ sub process_file {
 				nqwarn("can't get fingerprint: $file\n");
 			}
 		}
-		if ($verb_md5) {
+		if ($verbosity{md5}) {
 			open(FILE, $file) or nqdie2("open($file): $!\n");
 			binmode(FILE);
 			my $digest = Digest::MD5->new->addfile(*FILE)->hexdigest;
