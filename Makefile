@@ -12,7 +12,7 @@ README.md: findimagedupes
 	git commit -m 'synchronise README.md with findimagedupes source' || true
 
 github: README.md
-	git push github master
+	git push github main
 
 all: dist
 
