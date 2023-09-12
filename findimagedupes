@@ -622,7 +622,13 @@ sub finddupes {
 			next unless $ptr{$k} eq $k;
 			print join(" \\\n\t",
 				$program,
-				( map { quotemeta $set{$_} } @{$val{$ptr{$k}}} ),
+				(
+					map {
+						local $_ = $set{$_};
+						s/'/'"'"'/g;
+						"'$_'";
+					} @{$val{$ptr{$k}}}
+				),
 				";\n"
 			);
 		}
