@@ -245,7 +245,7 @@ Read the Inline module documentation for details.
 - To compare two images for similarity:
 
         1) Take fingerprint pairs and xor them.
-        2) Compute the percentage of 1 bits in the result.
+        2) Compute the percentage of 0 bits in the result.
         3) If percentage exceeds threshold, declare files to be similar.
 
 # RETURN VALUE
