@@ -39,6 +39,11 @@ Read the Inline module documentation for details.
 
 # OPTIONS
 
+- **--**
+
+    Terminates option processing; anything after this is a file or
+    directory name, not an option, even if it looks like an option.
+
 - **-0**, **--null**
 
     If a file `-` is given, a list of files is read from stdin.
