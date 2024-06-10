@@ -686,6 +686,11 @@ Read the Inline module documentation for details.
 
 =over 8
 
+=item B<-->
+
+Terminates option processing; anything after this is a file or
+directory name, not an option, even if it looks like an option.
+
 =item B<-0>, B<--null>
 
 If a file C<-> is given, a list of files is read from stdin.
