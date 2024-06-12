@@ -216,6 +216,10 @@ if (@warnings and !$quiet) {
 # | errors |
 # +--------+
 
+if ($read_input and $null) {
+	mkerr("cannot read file list from terminal when --null specified");
+}
+
 if ($collection and -e($collection)) {
 	mkerr("Output file for --collection exists: $collection");
 }
@@ -418,6 +422,9 @@ sub classify {
 
 	if ($file eq "-") {
 		if ($read_input) {
+			if (-t STDIN) {
+				nqwarn("Waiting for file list. Enter one file per line. Finish with Ctrl-D:\n");
+			}
 			$read_input = 0;
 			while (<STDIN>) {
 				chomp;
@@ -700,6 +707,8 @@ produced by find(1) with its C<-print> option.
 
 With B<-0>, the list is expected to be null-delimited, such as
 produced by find(1) with its C<-print0> option.
+
+It is an error to use B<-0> when reading from the terminal.
 
 =item B<-a>, B<--add>
 
