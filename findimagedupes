@@ -974,6 +974,12 @@ Same as above.
 Use script hooks to produce collection-style output
 suitable for use with gthumb(1).
 
+=item C<<<< findimagedupes -f db -n /a; findimagedupes -f db -M /dev/null -a /b /c >>>>
+
+Generate a fingerprint database from images in C</a>.
+Check the database for matches to images in C</b> and C</c>
+but don't save their fingerprints.
+
 =back
 
 =head1 FILES
