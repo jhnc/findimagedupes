@@ -111,8 +111,7 @@ sub mkwarn { push @warnings, join("", @_); }
 
 sub nqprint { print(@_) unless $quiet; }
 sub nqwarn { warn("Warning: ", @_) unless $quiet; }
-sub nqdie { nqwarn(@_); die; }
-sub nqdie2 { warn("Error: ", @_) if $quiet<2; die; }
+sub nqdie { warn("Error: ", @_) if $quiet<2; die; }
 sub nqexit { warn("Error: ", @_) if $quiet<2; exit(3); }
 
 my $inFP = 0;
@@ -396,7 +395,7 @@ sub process_file {
 			}
 		}
 		if ($verbosity{md5}) {
-			open(FILE, $file) or nqdie2("open($file): $!\n");
+			open(FILE, $file) or nqdie("open($file): $!\n");
 			binmode(FILE);
 			my $digest = Digest::MD5->new->addfile(*FILE)->hexdigest;
 			if ($digest) {
@@ -480,8 +479,8 @@ sub fingerprint {
 	unless ($debug{nohidestderr}) {
 		# imagemagick doesn't always catch output from the programs
 		# it spawns, so we have to clean up for it...
-		open(SAVED_OUT, ">&", \*STDOUT) or nqdie2("open(/dev/null): $!");
-		open(SAVED_ERR, ">&", \*STDERR) or nqdie2("open(/dev/null): $!");
+		open(SAVED_OUT, ">&", \*STDOUT) or nqdie("open(/dev/null): $!");
+		open(SAVED_ERR, ">&", \*STDERR) or nqdie("open(/dev/null): $!");
 		open(STDOUT, ">/dev/null");
 		open(STDERR, ">/dev/null");
 	}
@@ -523,8 +522,8 @@ sub fingerprint {
 	@$image = ();
 
 	unless ($debug{nohidestderr}) {
-		open(STDOUT, ">&", \*SAVED_OUT) or nqdie2("open(/dev/null): $!");
-		open(STDERR, ">&", \*SAVED_ERR) or nqdie2("open(/dev/null): $!");
+		open(STDOUT, ">&", \*SAVED_OUT) or nqdie("open(/dev/null): $!");
+		open(STDERR, ">&", \*SAVED_ERR) or nqdie("open(/dev/null): $!");
 		close(SAVED_OUT);
 		close(SAVED_ERR);
 	}
@@ -591,7 +590,7 @@ sub finddupes {
 	#	seems to misparse comment lines, and the sort pragma
 	#	it defines seems to be fragile wrt whitespace.
 	if ($collection) {
-		open(COLLECTION, "> $collection") or nqdie2("open(> $collection): $!\n");
+		open(COLLECTION, "> $collection") or nqdie("open(> $collection): $!\n");
 		select(COLLECTION);
 
 		print $collectionHeader;
@@ -613,10 +612,10 @@ sub finddupes {
 	}
 
 	if ($script) {
-		open(COMMANDS, "> $script") or nqdie2("open(> $script): $!\n");
+		open(COMMANDS, "> $script") or nqdie("open(> $script): $!\n");
 	}
 	else {
-		open(COMMANDS, "| /bin/sh") or nqdie2("open(| /bin/sh): $!\n");
+		open(COMMANDS, "| /bin/sh") or nqdie("open(| /bin/sh): $!\n");
 	}
 	select(COMMANDS);
 
