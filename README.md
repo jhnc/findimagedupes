@@ -295,6 +295,12 @@ To be written.
     Use script hooks to produce collection-style output
     suitable for use with gthumb(1).
 
+- `findimagedupes -f db -n /a; findimagedupes -f db -M /dev/null -a /b /c`
+
+    Generate a fingerprint database from images in `/a`.
+    Check the database for matches to images in `/b` and `/c`
+    but don't save their fingerprints.
+
 # FILES
 
 To be written.
