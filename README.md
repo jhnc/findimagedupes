@@ -54,6 +54,8 @@ Read the Inline module documentation for details.
     With **-0**, the list is expected to be null-delimited, such as
     produced by find(1) with its `-print0` option.
 
+    It is an error to use **-0** when reading from the terminal.
+
 - **-a**, **--add**
 
     Only look for duplicates of files specified on the commandline.
